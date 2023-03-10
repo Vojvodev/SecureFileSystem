@@ -1,6 +1,13 @@
 #include "ManageAccounts.h"
 
-
+#include "cryptlib.h"
+#include "x509cert.h"
+#include "secblock.h"
+#include "filters.h"
+#include "rsa.h"
+#include "sha.h"
+#include "hex.h"
+#include "pem.h"
 
 
 int registrate(void)
