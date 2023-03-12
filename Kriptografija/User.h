@@ -6,9 +6,13 @@ using std::string;
 
 class User {
 private:
-	string userName;
+	string commonName;
+	string emailAddress;
 
 public:
-	string getUserName() const;
-	string setUserName(string userName);
+	string getCommonName() const;
+	string setCommonName(string userName);
+
+	string getEmailAddress() const;
+	string setEmailAddress(string emailAddress);
 };

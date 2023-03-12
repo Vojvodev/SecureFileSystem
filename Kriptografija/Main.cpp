@@ -1,3 +1,4 @@
+
 #include "ManageAccounts.h"
 
 
@@ -23,17 +24,25 @@ int main()
         std::cin >> option;
 
         if (option == "-registrate") {
-            if (registrate()) std::cout << "\n-registration is successful-\n";
-            else std::cout << "\n-registration error-\n";
+            try {
+
+                if (!registrate()) std::cout << "\n      ---Registration successful---   \n";
+                
+            }
+            catch (string s) {
+                std::cout << s;
+            }
+
         }
+
 
         if (option == "-login") {
             if (login()) {
-                std::cout << "\n- is successful-\n";
+                std::cout << "\n        ---login successful---  \n";
                 
                 //TODO
             }
-            else std::cout << "\n-login error-\n";
+            else std::cout << "\n       ---login error---       \n";
         }
 
         if (option == "-logout") {
@@ -44,4 +53,7 @@ int main()
 
 
     } while (option != "-exit");
+
+
+    return 0;
 }
