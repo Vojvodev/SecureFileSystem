@@ -32,23 +32,19 @@ int main()
             catch (const char* s) {
                 std::cout << s;
             }
-
         }
-
 
         if (option == "-login") {
             if (login()) {
                 std::cout << "\n        ---login successful---  \n";
-                
-                //TODO
+
+                // Prikaz forme za ulogovanog korisnika
             }
             else std::cout << "\n       ---login error---       \n";
         }
 
         if (option == "-logout") {
             if (!logout()) std::cout << "\n-logout error-\n";
-            
-            //TODO
         }
 
 

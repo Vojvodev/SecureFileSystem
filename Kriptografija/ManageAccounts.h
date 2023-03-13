@@ -14,7 +14,7 @@
 #include<openssl/x509.h>
 #include<openssl/rsa.h>
 #include<openssl/pem.h>
-
+#include <openssl/x509_vfy.h>
 
 using std::string;
 

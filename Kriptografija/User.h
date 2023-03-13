@@ -7,6 +7,7 @@ class User {
 private:
 	char* commonName;
 	char* emailAddress;
+	//char* password;
 
 public:
 	char* getCommonName() const;

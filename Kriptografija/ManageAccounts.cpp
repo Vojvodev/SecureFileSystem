@@ -6,11 +6,11 @@
 int registrate(void)
 {
 
-						// KORISTITI KLASU  USER ----------------------------------------------
-	string inputName;
-	string inputEmail;
+						// ------------------------ KORISTITI KLASU  USER ----------------------------------------------
+	string inputName, inputEmail, password, passwordRepeat;
 
-	std::cout << "Unesite ime: ";
+
+	std::cout << "Odaberite vase korisnicko ime: ";
 	std::cin >> inputName;
 
 	std::cout << "Unesite email: ";
@@ -53,6 +53,14 @@ int registrate(void)
 		throw std::exception("CAN NOT CREATE FILE TO WRITE OUT THE CERTIFICATE!");
 	}
 
+
+	std::cout << "Odaberite vasu lozinku: ";
+	std::cin >> password;
+
+	std::cout << "Odaberite vasu lozinku: ";
+	std::cin >> passwordRepeat;
+	
+	// Sacuvati na neki nacin commonName,emailAddress, password
 
 
 	EVP_PKEY_free(pkey);
@@ -115,7 +123,7 @@ X509* signRequest(X509 **userCertRequest, char* commonName, char* emailAddress)
 {
 	// First, we open the CA certificate to read the name
 	const char* pathToCACert = "CAcert/rootca.pem";
-	X509_NAME* issuerName = X509_NAME_new();
+	X509_NAME* issuerName = NULL;
 
 	
 	FILE* CAfile;
@@ -166,7 +174,7 @@ X509* signRequest(X509 **userCertRequest, char* commonName, char* emailAddress)
 
 	fclose(CAfile2);
 
-	//						-----		Dekriptovati kljuc			------
+	//						-----		Dekriptovati kljuc			------		prompt the user to enter the passphrase at runtime
 
 
 	// Adding respectively countryName, stateOrProvinceName, organizationName, commonName, emailAddress
@@ -191,12 +199,10 @@ X509* signRequest(X509 **userCertRequest, char* commonName, char* emailAddress)
 	X509_sign(*userCertRequest, pkey, EVP_sha1());
 
 
+
 	EVP_PKEY_free(pkey);
 	return *userCertRequest;
 }
-
-
-
 
 
 bool writePkey(EVP_PKEY* pkey, char *privKeyName)
@@ -247,8 +253,30 @@ bool writeCertificate(X509* userCertRequest, char* certName)
 
 
 
+
+
 int login(void)
 {
+	//								----	KORISTITI KLASU USER	----
+	string userCertificate;
+	string userName;
+	string password, passwordRepeat;
+
+	std::cout << "Unesite putanju do vaseg sertifikata npr 'certs/Darijo.crt': ";
+	std::cin >> userCertificate;
+
+	// Verifikacija sertifikata
+
+	std::cout << "Unesite vase korisnicko ime: ";
+	std::cin >> userName;
+
+
+	std::cout << "Unesite vasu lozinku: ";
+	std::cin >> password;
+
+	// Verifikacija lozinke pa return 1;
+
+
 	return 0;
 }
 
