@@ -1,21 +1,21 @@
 #include "User.h"
 
-string User::getCommonName() const
+char* User::getCommonName() const
 {
     return this->commonName;
 }
 
-string User::setCommonName(string commonName)
+char* User::setCommonName(char* commonName)
 {
     return this->commonName = commonName;
 }
 
-string User::getEmailAddress() const
+char* User::getEmailAddress() const
 {
     return this->emailAddress;
 }
 
-string User::setEmailAddress(string emailAddress)
+char* User::setEmailAddress(char* emailAddress)
 {
     return this->emailAddress = emailAddress;
 }

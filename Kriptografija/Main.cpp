@@ -29,7 +29,7 @@ int main()
                 if (!registrate()) std::cout << "\n      ---Registration successful---   \n";
                 
             }
-            catch (string s) {
+            catch (const char* s) {
                 std::cout << s;
             }
 

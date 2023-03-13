@@ -1,18 +1,17 @@
 #pragma once
 
-#include <string>
 
-using std::string;
+
 
 class User {
 private:
-	string commonName;
-	string emailAddress;
+	char* commonName;
+	char* emailAddress;
 
 public:
-	string getCommonName() const;
-	string setCommonName(string userName);
+	char* getCommonName() const;
+	char* setCommonName(char* userName);
 
-	string getEmailAddress() const;
-	string setEmailAddress(string emailAddress);
+	char* getEmailAddress() const;
+	char* setEmailAddress(char* emailAddress);
 };
