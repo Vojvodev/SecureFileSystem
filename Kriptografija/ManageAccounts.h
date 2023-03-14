@@ -6,31 +6,64 @@
 #endif                          // Da se ukinu neka upozorenja
 */
 
+#include "User.h"
+
 #include <iostream>
+#include <iomanip>
+#include <memory>
+#include <sstream>
 #include <fstream>
 #include <string>
 #include <exception>
+#include <cstdint>
+#include <cassert>
 
-#include<openssl/x509.h>
-#include<openssl/rsa.h>
-#include<openssl/pem.h>
+
+#include <openssl/ssl.h>
+#include <openssl/evp.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/x509.h>
+#include <openssl/rsa.h>
+#include <openssl/dsa.h>
+#include <openssl/pem.h>
 #include <openssl/x509_vfy.h>
+
+
 
 using std::string;
 
-// For the CA private key
-constexpr auto PASSPHRASE = "sigurnost";
+
+
+
+
+class X509Certificate {
+
+	friend class User;
+
+	public:
+
+		EVP_PKEY* generatePkey();
+
+		// Returns a certficate, param. key 
+		X509* generateCertificate(User*);
+		
+		// Returns the issuer name from a certificate, param. filename
+		X509_NAME* readCertIssuerName(const char*);
+
+		// Returns a certificate from a file, param. filename
+		X509* loadCertificate(const char*);
+
+		// Returns the private key of a certificate, param. filename
+		EVP_PKEY* readCertPrivKey(const char*);
+
+};
+
 
 int registrate();
 
-EVP_PKEY* generatePkey();
-X509* generateCertificate(EVP_PKEY*, char*, char*);
-X509* signRequest(X509**, char*, char*);
-
-
-
-bool writePkey(EVP_PKEY*, char*);
-bool writeCertificate(X509*, char*);
+// Friend to 'User' class
+int getCredentials(User*);
 
 
 int login(void);

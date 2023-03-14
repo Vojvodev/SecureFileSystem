@@ -3,76 +3,48 @@
 #include "ManageAccounts.h"
 
 
-int registrate(void)
+
+
+
+int registrate()
 {
 
-						// ------------------------ KORISTITI KLASU  USER ----------------------------------------------
-	string inputName, inputEmail, password, passwordRepeat;
+	X509Certificate myCertificate;
+	User newUser;
 
-
-	std::cout << "Odaberite vase korisnicko ime: ";
-	std::cin >> inputName;
-
-	std::cout << "Unesite email: ";
-	std::cin >> inputEmail;
-
-	char* commonName = _strdup(inputName.c_str());
-	char* emailAddress = _strdup(inputEmail.c_str());
-
-
+	// User adds his name, password, country, ...
+	if (newUser.setAllCredentials()) throw std::exception("Error getting user credentials! \n");
+	
+	
 	// Creating a key pair
-	EVP_PKEY* pkey = generatePkey();
-	if(!pkey) throw std::exception("Unable to create EVP_PKEY structure. \n");
-
+	newUser.pkey = myCertificate.generatePkey();
+	if(!newUser.pkey) throw std::exception("Unable to create EVP_PKEY structure. \n");
+	
 
 	// Creating new certificate
-	X509* userCertRequest = generateCertificate(pkey, commonName, emailAddress);
-	if (!userCertRequest) {
-		EVP_PKEY_free(pkey);
-		throw std::exception("CAN NOT CREATE USER CERTIFICATE! \n");
-	}
+	newUser.userCertificate = myCertificate.generateCertificate(&newUser);
+	if (!newUser.userCertificate) throw std::exception("CAN NOT CREATE USER CERTIFICATE! \n");
 	
-	std::cout << "Napravio sertifikat! \n\n";
 
 	// Storing user's private key to a binary file
-	if (!writePkey(pkey, commonName)) {
-
-		EVP_PKEY_free(pkey);
-		X509_free(userCertRequest);
-
-		throw std::exception("CAN NOT CREATE FILE TO WRITE OUT THE KEY!");
-	}
+	if (!newUser.writePrivateKey()) throw std::exception("CAN NOT WRITE OUT THE KEY!");
 	
 	
 	// Storing user certificate to a binary file
-	if (!writeCertificate(userCertRequest, commonName)) {
+	if (!newUser.writeCertificate()) throw std::exception("CAN NOT CREATE FILE TO WRITE OUT THE CERTIFICATE!");
 
-		EVP_PKEY_free(pkey);
-		X509_free(userCertRequest);
-
-		throw std::exception("CAN NOT CREATE FILE TO WRITE OUT THE CERTIFICATE!");
-	}
-
-
-	std::cout << "Odaberite vasu lozinku: ";
-	std::cin >> password;
-
-	std::cout << "Odaberite vasu lozinku: ";
-	std::cin >> passwordRepeat;
 	
-	// Sacuvati na neki nacin commonName,emailAddress, password
+	//																							TODO:   ------------ Sacuvati korisnika u fajl sistem ---------------
 
 
-	EVP_PKEY_free(pkey);
-	X509_free(userCertRequest);
 	
-	free(commonName);
-	free(emailAddress);
+
 	return 0;
 }
 
 
-EVP_PKEY* generatePkey()
+
+EVP_PKEY* X509Certificate::generatePkey()
 {
 	/*
 			---Deprecated way---
@@ -93,162 +65,186 @@ EVP_PKEY* generatePkey()
 
 
 	EVP_PKEY_assign(pkey, 6, rsaKey);
-
+			
+			---Deprecated way---
 	*/
 
+
+	
+	//				---Jos jedan nacin---
+	//	int rc;
+	//	
+	//	/*  Step 1 : Initancialize EVP_PKEY Object, allocate memory for p_pkey*/
+	//	
+	//	EVP_PKEY *p_pkey = EVP_PKEY_new();
+	//	if (p_pkey == nullptr) {
+	//		std::cout << "generate_rsa_key->EVP_PKEY_new() error" << std::endl;;
+	//		return NULL;
+	//	}
+	//	
+	//	/*  Step 2 : Create EVP_PKEY_CTX object,  allocate memory for ctx */
+	//	
+	//	EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
+	//	if (ctx == nullptr) {
+	//		std::cout << "generate_rsa_key->EVP_PKEY_CTX_new_id() error" << std::endl;;
+	//		return NULL;
+	//	}
+	//	
+	//	/*  Step 3 : Initializ ctx object */
+	//	
+	//	rc = EVP_PKEY_keygen_init(ctx);
+	//	if (rc != 1) {
+	//		std::cout << "generate_rsa_key->EVP_PKEY_keygen_init() error" << std::endl;;
+	//		return NULL;
+	//	}
+	//	
+	//	/*  Step 4 : sets the RSA key bits. If not specified 1024 bits is used.  */
+	//	
+	//	rc = EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, 2048);
+	//	if (rc <= 0) {
+	//		std::cout << "generate_rsa_key->EVP_PKEY_CTX_set_rsa_keygen_bits() error" << std::endl;;
+	//		return NULL;
+	//	}
+	//	
+	//	/*  Step 5 : Generate Key */
+	//	
+	//	rc = EVP_PKEY_keygen(ctx, &p_pkey);
+	//	if (rc != 1) {
+	//		std::cout << "generate_rsa_key->EVP_PKEY_keygen() error" << std::endl;;
+	//		return NULL;
+	//	}
+	//	
+	//	/*  Step 6 : free ctx allocated memory */
+	//	
+	//	EVP_PKEY_CTX_free(ctx);
+	//	
+	//	return p_pkey;
+	//				---Jos jedan nacin---
 
 	return EVP_RSA_gen(2048);
 }
 
 
-X509* generateCertificate(EVP_PKEY *pkey, char *commonName, char *emailAddress)
+X509* X509Certificate::generateCertificate(User* newUser)
 {
+	X509_NAME* p_name = X509_NAME_new();
+
+	// Creating a new certificate
 	X509* userCertRequest = X509_new();
 	if (!userCertRequest) return NULL;
 
 
-	ASN1_INTEGER_set(X509_get_serialNumber(userCertRequest), 1);
-	X509_gmtime_adj(X509_get_notBefore(userCertRequest), 0);
+	int rc = X509_set_version(userCertRequest, 1L);
+	if (rc != 1) {
+		std::cout << "generate_x509->X509_set_version() error" << std::endl;
+	}
+	ASN1_INTEGER_set(X509_get_serialNumber(userCertRequest), 1L);
+	X509_gmtime_adj(X509_get_notBefore(userCertRequest), 0L);
 	X509_gmtime_adj(X509_get_notAfter(userCertRequest), 15768000L);		// Half a year
 
-	X509_set_pubkey(userCertRequest, pkey);
-
-	X509* userCertificate = signRequest(&userCertRequest, commonName, emailAddress);
+	X509_set_pubkey(userCertRequest, newUser->pkey);
 
 
-	return userCertificate;
-}
 
-X509* signRequest(X509 **userCertRequest, char* commonName, char* emailAddress)
-{
 	// First, we open the CA certificate to read the name
 	const char* pathToCACert = "CAcert/rootca.pem";
-	X509_NAME* issuerName = NULL;
+	X509* CAcert = X509Certificate::loadCertificate(pathToCACert);
+	X509_NAME* issuerName = X509_get_issuer_name(CAcert);
+
+	std::cout << (char*)issuerName;
+	//X509_NAME* issuerName = this->readCertIssuerName(pathToCACert);
 
 	
-	FILE* CAfile;
-	fopen_s(&CAfile, pathToCACert, "r");
-	if (CAfile) {
-
-		X509* CAcertificate = PEM_read_X509(CAfile, NULL, NULL, NULL);
-
-		std::cout << "1\n";
-		if (CAcertificate) {
-
-			issuerName = X509_get_issuer_name(CAcertificate);
-
-		}
-		else {
-			std::cout << "Could not parse certificate \n";
-		}
-
-		X509_free(CAcertificate);
-	}
-	else {
-		std::cout << "COULD NOT OPEN CERT FILE! \n";
-		return NULL;
-	}
-
-	fclose(CAfile);
-
 
 	// Then we open it to read the private key
 	const char* pathToPrivateKey = "CAcert/kljuc.key";
-	EVP_PKEY* pkey = EVP_PKEY_new();
+	EVP_PKEY* CApkey = this->readCertPrivKey(pathToPrivateKey);
+	
 
 
-	FILE* CAfile2;
-	fopen_s(&CAfile2, pathToPrivateKey, "r");
-	if (CAfile2) {
-		PEM_read_PrivateKey(CAfile2, &pkey, NULL, (void*)PASSPHRASE);
-		if (!pkey) {
-			std::cout << "CAN NOT LOAD KEY! \n";
-			return NULL;
-		}
-	}
-	else {
-		std::cout << "COULD NOT OPEN KEY FILE! \n";
+	//												???			-----		Dekriptovati kljuc			------		passphrase == password?		 ???
+
+
+	// Adding respectively countryName, stateOrProvinceName, location, organizationName, organizationUnit, commonName, issuerName
+	X509_NAME_add_entry_by_txt(p_name, "C",  MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->country).c_str()),			  -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "ST", MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->state).c_str()),			  -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "L",  MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->locality).c_str()),			  -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "O",  MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->organisationName).c_str()),   -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "OU", MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->organisationalUnit).c_str()), -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "CN", MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->commonName).c_str()),		  -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "IN", MBSTRING_ASC, (unsigned char*)issuerName,													  -1, -1, 0);
+
+
+	X509_set_subject_name(userCertRequest, p_name);
+	X509_set_issuer_name(userCertRequest, p_name);				// Problem
+
+
+	// Signing a certificate using a CA key
+	X509_sign(userCertRequest, CApkey, EVP_sha1());
+
+
+
+	EVP_PKEY_free(CApkey);
+	return userCertRequest;
+}
+
+X509_NAME* X509Certificate::readCertIssuerName(const char* pathToCert)
+{
+	BIO* bio_x509 = NULL;
+	bio_x509 = BIO_new_file(pathToCert, "r");
+
+	X509* newCertificate = PEM_read_bio_X509(bio_x509, NULL, NULL, NULL);
+
+	BIO_free(bio_x509);
+	if (newCertificate == nullptr) {
+		std::cout << "load_x509_certificate->PEM_read_bio_X509() Error" << std::endl;
 		return NULL;
 	}
 
-
-	fclose(CAfile2);
-
-	//						-----		Dekriptovati kljuc			------		prompt the user to enter the passphrase at runtime
+	X509_NAME *issuerName = X509_get_issuer_name(newCertificate);
 
 
-	// Adding respectively countryName, stateOrProvinceName, organizationName, commonName, emailAddress
-	X509_NAME_add_entry_by_txt(issuerName, "C", MBSTRING_ASC,
-		(unsigned char*)"BA", -1, -1, 0);
-
-	//X509_NAME_add_entry_by_txt(issuerName, "S", MBSTRING_ASC,
-		//(unsigned char*)"RS", -1, -1, 0);				// NOT SURE IF "S" WORKS
-
-	X509_NAME_add_entry_by_txt(issuerName, "O", MBSTRING_ASC,
-		(unsigned char*)"Elektrotehnicki fakultet", -1, -1, 0);
-
-	X509_NAME_add_entry_by_txt(issuerName, "CN", MBSTRING_ASC,
-		(unsigned char*)commonName, -1, -1, 0);
-
-	//X509_NAME_add_entry_by_txt(issuerName, "E", MBSTRING_ASC,
-		//(unsigned char*)emailAddress, -1, -1, 0);		// NOT SURE IF "E" WORKS
-
-
-
-	X509_set_issuer_name(*userCertRequest, issuerName);
-	X509_sign(*userCertRequest, pkey, EVP_sha1());
-
-
-
-	EVP_PKEY_free(pkey);
-	return *userCertRequest;
+	X509_free(newCertificate);
+	return  issuerName;
 }
 
-
-bool writePkey(EVP_PKEY* pkey, char *privKeyName)
+X509* X509Certificate::loadCertificate(const char* pathToCert)
 {
-	const char* extension1 = ".key";
-	strcat_s(privKeyName, 16, extension1);
+	BIO* bio_x509 = NULL;
+	bio_x509 = BIO_new_file(pathToCert, "r");
 
-	//const unsigned char* passphrase = reinterpret_cast < const unsigned char*>("sigurnost"); je alternativa
-	const unsigned char* passphrase;
-	const unsigned char p[] = "sigurnost";
-	passphrase = p;
+	X509* newCertificate = PEM_read_bio_X509(bio_x509, NULL, NULL, NULL);
 
-
-	FILE* outputPrivKeyFile;
-	fopen_s(&outputPrivKeyFile, privKeyName, "wb");
-
-
-	if (outputPrivKeyFile) {
-		PEM_write_PrivateKey(outputPrivKeyFile, pkey, EVP_des_ede3_cbc(), passphrase, 9, NULL, NULL);
+	BIO_free(bio_x509);
+	if (newCertificate == nullptr) {
+		std::cout << "load_x509_certificate->PEM_read_bio_X509() Error" << std::endl;
+		return NULL;
 	}
-	else return false;
 
-
-
-	fclose(outputPrivKeyFile);
-	return true;
+	
+	return  newCertificate;
 }
 
-
-bool writeCertificate(X509* userCertRequest, char* certName)
+EVP_PKEY* X509Certificate::readCertPrivKey(const char *pathToPrivateKey)
 {
-	const char* extension2 = ".crt";
-	strcat_s(certName, 16, extension2);
+	EVP_PKEY* privKey = EVP_PKEY_new();
 
-	FILE* outputCertFile;
-	fopen_s(&outputCertFile, certName, "wb");
+	BIO* bio_key = NULL;
 
-	if (outputCertFile) {
-		PEM_write_X509(outputCertFile, userCertRequest);
+	bio_key = BIO_new_file(pathToPrivateKey, "r");
+
+	privKey = PEM_read_bio_PrivateKey(bio_key, &privKey, NULL, (void*)PASSPHRASE);					//				--- PROVJERITI MOGUCNOSTI DEKRIPCIJE KLJUCA ---
+
+	if (privKey == nullptr) {
+		std::cout << "My_X509_Certificate->load_key() Error" << std::endl;
 	}
-	else return false;
 
 
-	fclose(outputCertFile);
-	return true;
+	BIO_free(bio_key);
+	return privKey;
 }
+
+
 
 
 

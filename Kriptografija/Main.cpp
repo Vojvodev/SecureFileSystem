@@ -26,8 +26,8 @@ int main()
         if (option == "-registrate") {
             try {
 
-                if (!registrate()) std::cout << "\n      ---Registration successful---   \n";
-                
+                if (!registrate()) std::cout << "\n      ---Registration successful---      \n";
+                else std::cout << "\n       ---Registration error---        \n";
             }
             catch (const char* s) {
                 std::cout << s;
@@ -36,15 +36,15 @@ int main()
 
         if (option == "-login") {
             if (login()) {
-                std::cout << "\n        ---login successful---  \n";
+                std::cout << "\n        ---login successful---      \n";
 
                 // Prikaz forme za ulogovanog korisnika
             }
             else std::cout << "\n       ---login error---       \n";
         }
-
+        
         if (option == "-logout") {
-            if (!logout()) std::cout << "\n-logout error-\n";
+            if (!logout()) std::cout << "\n         ---logout error---      \n";
         }
 
 
