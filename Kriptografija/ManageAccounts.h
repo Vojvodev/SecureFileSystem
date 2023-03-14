@@ -60,6 +60,11 @@ class X509Certificate {
 };
 
 
+
+// Sve ovo dolje bi moglo u drugi heder fajl...
+
+
+// Friend to 'User' class
 int registrate();
 
 // Friend to 'User' class

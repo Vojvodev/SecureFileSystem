@@ -12,29 +12,43 @@ int registrate()
 	X509Certificate myCertificate;
 	User newUser;
 
-	// User adds his name, password, country, ...
-	if (newUser.setAllCredentials()) throw std::exception("Error getting user credentials! \n");
+		// User adds his name, password, country, ...
+		if (newUser.setAllCredentials()) {
+			std::cout << "CAN NOT SET CREDENTIALS \n";
+			return -1;
+		}
+		
+		// Creating a key pair
+		newUser.pkey = myCertificate.generatePkey();
+		if (!newUser.pkey) {
+			std::cout << "CAN NOT GENERATE KEY \n";
+			return -1;
+		}
+	
+		
+		// Creating new certificate
+		newUser.userCertificate = myCertificate.generateCertificate(&newUser);
+		if (!newUser.userCertificate) {
+			std::cout << "CAN NOT GENERATE CERTIFICATE \n";
+			return -1;
+		}
+	
+		
+		// Storing user's private key to a binary file
+		if (!newUser.writePrivateKey()) {
+			std::cout << "CAN NOT STORE PRIVATE KEY \n";
+			return -1;
+		}
+	
+		
+		// Storing user certificate to a binary file
+		if (!newUser.writeCertificate()) {
+			std::cout << "CAN NOT STROTE CERTIFICATE \n";
+			return -1;
+		};
 	
 	
-	// Creating a key pair
-	newUser.pkey = myCertificate.generatePkey();
-	if(!newUser.pkey) throw std::exception("Unable to create EVP_PKEY structure. \n");
-	
-
-	// Creating new certificate
-	newUser.userCertificate = myCertificate.generateCertificate(&newUser);
-	if (!newUser.userCertificate) throw std::exception("CAN NOT CREATE USER CERTIFICATE! \n");
-	
-
-	// Storing user's private key to a binary file
-	if (!newUser.writePrivateKey()) throw std::exception("CAN NOT WRITE OUT THE KEY!");
-	
-	
-	// Storing user certificate to a binary file
-	if (!newUser.writeCertificate()) throw std::exception("CAN NOT CREATE FILE TO WRITE OUT THE CERTIFICATE!");
-
-	
-	//																							TODO:   ------------ Sacuvati korisnika u fajl sistem ---------------
+	//																		TODO:   ------------ Sacuvati korisnika u fajl sistem ---------------
 
 
 	
@@ -151,7 +165,7 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	X509* CAcert = X509Certificate::loadCertificate(pathToCACert);
 	X509_NAME* issuerName = X509_get_issuer_name(CAcert);
 
-	std::cout << (char*)issuerName;
+
 	//X509_NAME* issuerName = this->readCertIssuerName(pathToCACert);
 
 	
@@ -172,19 +186,29 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	X509_NAME_add_entry_by_txt(p_name, "O",  MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->organisationName).c_str()),   -1, -1, 0);
 	X509_NAME_add_entry_by_txt(p_name, "OU", MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->organisationalUnit).c_str()), -1, -1, 0);
 	X509_NAME_add_entry_by_txt(p_name, "CN", MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->commonName).c_str()),		  -1, -1, 0);
-	X509_NAME_add_entry_by_txt(p_name, "IN", MBSTRING_ASC, (unsigned char*)issuerName,													  -1, -1, 0);
+	X509_NAME_add_entry_by_txt(p_name, "IN", MBSTRING_ASC, (unsigned char*)issuerName, -1, -1, 0);
 
 
 	X509_set_subject_name(userCertRequest, p_name);
-	X509_set_issuer_name(userCertRequest, p_name);				// Problem
+	X509_set_issuer_name(userCertRequest, issuerName);									
 
 
-	// Signing a certificate using a CA key
-	X509_sign(userCertRequest, CApkey, EVP_sha1());
-
+	if (newUser->country == "BA" && newUser->state == "RS" && newUser->locality == "BL" && newUser->organisationName == "ETF") {
+		// Signing a certificate using a CA key
+		X509_sign(userCertRequest, CApkey, EVP_sha1());
+	}
+	else
+	{
+		EVP_PKEY_free(CApkey);
+		X509_free(CAcert);
+		
+		std::cout << "Wrong data, can't issue a certificate to you. \n";
+		return NULL;
+	}
 
 
 	EVP_PKEY_free(CApkey);
+	X509_free(CAcert);
 	return userCertRequest;
 }
 

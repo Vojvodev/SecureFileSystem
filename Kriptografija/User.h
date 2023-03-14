@@ -5,6 +5,8 @@
 
 #include <string>
 #include <iostream>
+#include <exception>
+
 
 #include <openssl/types.h>
 #include <openssl/evp.h>
@@ -50,6 +52,7 @@ class User {
 		void setPassword(string);
 
 		EVP_PKEY* getPkey() const;
+		// Shallow copy
 		void setPkey(EVP_PKEY*);	// Dereferencing EVP_PKEY* type is not allowed so I don't know how to copy the content from one pointer to another
 
 		User();
@@ -58,7 +61,7 @@ class User {
 
 		int setAllCredentials();
 
-		// Stores a User object in a file, param. fileName WITHOUT HIS PRIVATE KEY
+		// Stores a User object in a file, param. fileName WITHOUT HIS PRIVATE KEY AND CERTIFICATE
 		//int writeUser(char*);
 
 		// Reads a User object from a binary file, param. filename

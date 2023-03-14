@@ -24,14 +24,9 @@ int main()
         std::cin >> option;
 
         if (option == "-registrate") {
-            try {
-
-                if (!registrate()) std::cout << "\n      ---Registration successful---      \n";
-                else std::cout << "\n       ---Registration error---        \n";
-            }
-            catch (const char* s) {
-                std::cout << s;
-            }
+            if (!registrate()) std::cout << "\n      ---Registration successful---      \n";
+            else std::cout << "\n       ---Registration error---        \n";
+            
         }
 
         if (option == "-login") {
