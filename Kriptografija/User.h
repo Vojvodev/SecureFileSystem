@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <exception>
+#include <fstream>
 
 
 #include <openssl/types.h>
@@ -61,11 +62,11 @@ class User {
 
 		int setAllCredentials();
 
-		// Stores a User object in a file, param. fileName WITHOUT HIS PRIVATE KEY AND CERTIFICATE
-		//int writeUser(char*);
+		// Stores a User object in a file WITHOUT HIS PRIVATE KEY AND CERTIFICATE
+		int writeUser();
 
-		// Reads a User object from a binary file, param. filename
-		// User* readUser(char*);
+		// Reads a User object from a binary file
+		int readUser();
 
 	private:
 		string country, state, locality, organisationName, organisationalUnit, emailAddress;

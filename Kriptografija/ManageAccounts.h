@@ -8,6 +8,7 @@
 
 #include "User.h"
 
+#include <filesystem>
 #include <iostream>
 #include <iomanip>
 #include <memory>

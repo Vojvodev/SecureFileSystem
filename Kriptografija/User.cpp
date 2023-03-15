@@ -4,6 +4,7 @@
 
 
 
+
 string User::getCommonName() const
 {
     return this->commonName;
@@ -150,9 +151,42 @@ int User::setAllCredentials()
     return 0;
 }
 
+int User::writeUser()
+{
+    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string filename = pathToFolder + this->commonName + "_user.dat";
+    
+    std::ofstream myFile(filename.c_str(), std::ios::out | std::ios::binary);
+    if (!myFile) return 0;
+
+    myFile.write((char*)this, sizeof(User));
+
+
+
+    myFile.close();
+    return 1;
+}
+
+int User::readUser()
+{
+    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string filename = pathToFolder + this->commonName + "_user.dat";
+
+    std::ifstream myFile(filename.c_str(), std::ios::in | std::ios::binary);
+    if (!myFile) return 0;
+
+    myFile.read((char*)this, sizeof(User));
+
+
+
+    myFile.close();
+    return 1;
+}
+
 int User::writePrivateKey()
 {
-    string filename = this->commonName + ".key";
+    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string filename = pathToFolder + this->commonName + ".key";
 
     
     int rc;
@@ -160,7 +194,7 @@ int User::writePrivateKey()
 
     BIO* bio_out = BIO_new_file(filename.c_str(), "w");
 
-    rc = PEM_write_bio_PrivateKey(bio_out, pkey, NULL, NULL, 0, 0, (void*)PASSPHRASE);            //                  --- PROVJERITI MOGUCNOST ENKRIPCIJE KLJUCA ---
+    rc = PEM_write_bio_PrivateKey(bio_out, pkey, NULL, NULL, 0, 0, (void*)PASSPHRASE);            //       --- PROVJERITI MOGUCNOST ENKRIPCIJE KLJUCA ---
 
 
     BIO_free(bio_out);
@@ -169,7 +203,8 @@ int User::writePrivateKey()
 
 int User::writeCertificate()
 {
-    string filename = this->commonName + ".crt";
+    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string filename = pathToFolder + this->commonName + ".crt";
 
     int rc = 0;
     BIO* bio_out = NULL;

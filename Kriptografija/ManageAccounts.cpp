@@ -33,22 +33,32 @@ int registrate()
 			return -1;
 		}
 	
+
 		
-		// Storing user's private key to a binary file
+		// Creates a directory to save all the information about one user
+		std::filesystem::create_directory("./Korisnici/" + newUser.commonName);					// Need to set up c++ version in project properties to c++17 or higher
+
+		// Storing user's information to a file
+		if (!newUser.writeUser()) {
+			std::cout << "CAN NOT STORE USER'S INFORMATION! \n";
+			return -1;
+		}
+
+
+		// Storing user's private key to a file
 		if (!newUser.writePrivateKey()) {
 			std::cout << "CAN NOT STORE PRIVATE KEY \n";
 			return -1;
 		}
 	
 		
-		// Storing user certificate to a binary file
+		// Storing user certificate to a file
 		if (!newUser.writeCertificate()) {
 			std::cout << "CAN NOT STROTE CERTIFICATE \n";
 			return -1;
 		};
 	
 	
-	//																		TODO:   ------------ Sacuvati korisnika u fajl sistem ---------------
 
 
 	
