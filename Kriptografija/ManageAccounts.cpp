@@ -3,7 +3,14 @@
 #include "ManageAccounts.h"
 
 
+X509Certificate::X509Certificate() : myCertificate(nullptr), pkey(nullptr) {}
 
+X509Certificate::~X509Certificate() {
+	if (myCertificate != nullptr)
+		X509_free(myCertificate);
+	if (pkey != nullptr)
+		EVP_PKEY_free(pkey);
+}
 
 
 int registrate()
@@ -36,7 +43,7 @@ int registrate()
 
 		
 		// Creates a directory to save all the information about one user
-		std::filesystem::create_directory("./Korisnici/" + newUser.commonName);					// Need to set up c++ version in project properties to c++17 or higher
+		std::filesystem::create_directory("./Korisnici/" + newUser.commonName);					// In project properties c++17 or higher
 
 		// Storing user's information to a file
 		if (!newUser.writeUser()) {
@@ -47,14 +54,14 @@ int registrate()
 
 		// Storing user's private key to a file
 		if (!newUser.writePrivateKey()) {
-			std::cout << "CAN NOT STORE PRIVATE KEY \n";
+			std::cout << "CAN NOT STORE USER'S PRIVATE KEY \n";
 			return -1;
 		}
 	
 		
 		// Storing user certificate to a file
 		if (!newUser.writeCertificate()) {
-			std::cout << "CAN NOT STROTE CERTIFICATE \n";
+			std::cout << "CAN NOT STORE USER'S CERTIFICATE \n";
 			return -1;
 		};
 	
@@ -169,10 +176,17 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	X509_set_pubkey(userCertRequest, newUser->pkey);
 
 
+	// Specifying key usage to digital signature
+	X509V3_CTX ctx;
+	X509V3_set_ctx(&ctx, NULL, NULL, NULL, NULL, 0);
+	X509_EXTENSION* ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_key_usage, "digitalSignature");
+	X509_add_ext(userCertRequest, ext, -1);
+	X509_EXTENSION_free(ext);
+
+
 
 	// First, we open the CA certificate to read the name
-	const char* pathToCACert = "CAcert/rootca.pem";
-	X509* CAcert = X509Certificate::loadCertificate(pathToCACert);
+	X509* CAcert = X509Certificate::loadCertificate((const char*)pathToCACert);
 	X509_NAME* issuerName = X509_get_issuer_name(CAcert);
 
 
@@ -181,12 +195,7 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	
 
 	// Then we open it to read the private key
-	const char* pathToPrivateKey = "CAcert/kljuc.key";
-	EVP_PKEY* CApkey = this->readCertPrivKey(pathToPrivateKey);
-	
-
-
-	//												???			-----		Dekriptovati kljuc			------		passphrase == password?		 ???
+	EVP_PKEY* CApkey = this->readCertPrivKey((const char*)pathToPrivateKey);
 
 
 	// Adding respectively countryName, stateOrProvinceName, location, organizationName, organizationUnit, commonName, issuerName
@@ -251,7 +260,6 @@ X509* X509Certificate::loadCertificate(const char* pathToCert)
 
 	BIO_free(bio_x509);
 	if (newCertificate == nullptr) {
-		std::cout << "load_x509_certificate->PEM_read_bio_X509() Error" << std::endl;
 		return NULL;
 	}
 
@@ -267,7 +275,7 @@ EVP_PKEY* X509Certificate::readCertPrivKey(const char *pathToPrivateKey)
 
 	bio_key = BIO_new_file(pathToPrivateKey, "r");
 
-	privKey = PEM_read_bio_PrivateKey(bio_key, &privKey, NULL, (void*)PASSPHRASE);					//				--- PROVJERITI MOGUCNOSTI DEKRIPCIJE KLJUCA ---
+	privKey = PEM_read_bio_PrivateKey(bio_key, &privKey, NULL, (void*)PASSPHRASE);		// Zna automatski na osnovu hedera u fajlu koji je algoritam koristen
 
 	if (privKey == nullptr) {
 		std::cout << "My_X509_Certificate->load_key() Error" << std::endl;
@@ -280,40 +288,89 @@ EVP_PKEY* X509Certificate::readCertPrivKey(const char *pathToPrivateKey)
 
 
 
-
-
-
-
-
-int login(void)
+int login()
 {
-	//								----	KORISTITI KLASU USER	----
-	string userCertificate;
+	int rc = 1, i = 3;
+	string userCertificatePath;
 	string userName;
-	string password, passwordRepeat;
+	string password;
 
-	std::cout << "Unesite putanju do vaseg sertifikata npr 'certs/Darijo.crt': ";
-	std::cin >> userCertificate;
+	EVP_PKEY* publicCAkey = nullptr;
+	User newUser;
 
-	// Verifikacija sertifikata
+	do {
+		std::cout << "Unesite vase korisnicko ime: ";
+		std::cin >> userName;
 
-	std::cout << "Unesite vase korisnicko ime: ";
-	std::cin >> userName;
-
-
-	std::cout << "Unesite vasu lozinku: ";
-	std::cin >> password;
-
-	// Verifikacija lozinke pa return 1;
+		std::cout << "Unesite vasu lozinku: ";
+		std::cin >> password;
 
 
-	return 0;
+		userCertificatePath = "./Korisnici/" + userName + "/" + userName + ".crt";
+		
+
+		X509Certificate userCertificate;
+		userCertificate.myCertificate = userCertificate.loadCertificate(userCertificatePath.c_str());
+
+		X509Certificate CAcertificate;
+		CAcertificate.myCertificate = CAcertificate.loadCertificate((const char*)pathToCACert);
+
+
+		if (!userCertificate.myCertificate)
+		{
+			std::cout << "Non existing user name.\n--Try again-- \n"; i--; continue;
+		}
+
+
+
+		// Extracting public key from the certificate 
+		publicCAkey = X509_get_pubkey(CAcertificate.myCertificate);
+
+		// Verifying the certificate
+		if (!X509_verify(userCertificate.myCertificate, publicCAkey))
+		{
+			std::cout << "\n--Login unsuccessful.-- \nCould not verify your certificate. \n\n";
+			return 0;
+		}
+
+		newUser.readUser(userName);
+
+		
+		if (newUser.readUser(userName)) {
+			if (newUser.getPassword() == password)
+			{
+				EVP_PKEY_free(publicCAkey);
+				return rc;
+			}
+			else
+			{
+				std::cout << "Wrong password\nTry again: \n"; i--; continue;
+			}
+		}
+		else {i--;}
+
+		} while (i < 3 && i > 0);
+
+		if (i == 0)
+		{
+
+			// TODO: revoke certificate IMA U TXT FAJLU
+
+
+			std::cout << "Three unsuccessful login attempts -> your certificate has been revoked. \n";
+			std::cout << "You can recover your certificate later or register a new account. \n";
+			rc = 0;
+		}
+
+
+
+	if(!publicCAkey) EVP_PKEY_free(publicCAkey);
+	return rc;
 }
 
 
 
-int logout(void)
+int X509Certificate::certRecovery()
 {
 	return 0;
 }
-

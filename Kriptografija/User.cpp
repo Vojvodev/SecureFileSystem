@@ -159,7 +159,14 @@ int User::writeUser()
     std::ofstream myFile(filename.c_str(), std::ios::out | std::ios::binary);
     if (!myFile) return 0;
 
-    myFile.write((char*)this, sizeof(User));
+    myFile.write((this->country).c_str(),            sizeof(this->country));
+    myFile.write((this->state).c_str(),              sizeof(this->state));
+    myFile.write((this->locality).c_str(),           sizeof(this->locality));
+    myFile.write((this->organisationName).c_str(),   sizeof(this->organisationName));
+    myFile.write((this->organisationalUnit).c_str(), sizeof(this->organisationalUnit));
+    myFile.write((this->emailAddress).c_str(),       sizeof(this->emailAddress));
+    myFile.write((this->commonName).c_str(),         sizeof(this->commonName));
+    myFile.write((this->password).c_str(),           sizeof(this->password));
 
 
 
@@ -167,16 +174,22 @@ int User::writeUser()
     return 1;
 }
 
-int User::readUser()
+int User::readUser(string commonName)
 {
-    string pathToFolder = "./Korisnici/" + this->commonName + "/";
-    string filename = pathToFolder + this->commonName + "_user.dat";
+    string pathToFolder = "./Korisnici/" + commonName + "/";
+    string filename = pathToFolder + commonName + "_user.dat";
 
     std::ifstream myFile(filename.c_str(), std::ios::in | std::ios::binary);
     if (!myFile) return 0;
 
-    myFile.read((char*)this, sizeof(User));
-
+    myFile.read(&(this->country)[0], sizeof(this->country));   // To convert string to char*
+    myFile.read(&(this->state)[0], sizeof(this->state));
+    myFile.read(&(this->locality)[0], sizeof(this->locality));
+    myFile.read(&(this->organisationName)[0], sizeof(this->organisationName));
+    myFile.read(&(this->organisationalUnit)[0], sizeof(this->organisationalUnit));
+    myFile.read(&(this->emailAddress)[0], sizeof(this->emailAddress));
+    myFile.read(&(this->commonName)[0], sizeof(this->commonName));
+    myFile.read(&(this->password)[0], sizeof(this->password));
 
 
     myFile.close();
@@ -194,7 +207,8 @@ int User::writePrivateKey()
 
     BIO* bio_out = BIO_new_file(filename.c_str(), "w");
 
-    rc = PEM_write_bio_PrivateKey(bio_out, pkey, NULL, NULL, 0, 0, (void*)PASSPHRASE);            //       --- PROVJERITI MOGUCNOST ENKRIPCIJE KLJUCA ---
+    // Kljuc je zapisan u datoteku i kriptovan je korisnickom sifrom i u datoteci pise --begin encrypted private key-- unmjesto samo private key
+    rc = PEM_write_bio_PrivateKey(bio_out, pkey, EVP_aes_256_cbc(), reinterpret_cast<const unsigned char*>((this->password).c_str()), strlen((this->password).c_str()), NULL, NULL);
 
 
     BIO_free(bio_out);

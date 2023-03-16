@@ -10,16 +10,17 @@ int main()
 
 
     std::cout << "\n          - Welcome -         \n";
-    std::cout << "What do you want to do ? \n\n";
+    std::cout << "What do you want to do ? \n\n\n";
 
-    std::cout << "To registrate, enter  -registrate \n";
-    std::cout << "To log in, enter      -login \n";
-    std::cout << "To log out, enter     -logout \n";
-    std::cout << "To exit, enter        -exit \n\n";
+    std::cout << "To registrate, enter                  -registrate \n";
+    std::cout << "To log in, enter                      -login \n";
+    std::cout << "To recover your certificate, enter    -recover \n";
+    std::cout << "To exit, enter                        -exit \n\n\n";
 
-    std::cout << "Enter one of the options above:  ";
-
+   
     do {
+        std::cout << "Enter one of the options above:  ";
+
         std::cout << "\n\n";
         std::cin >> option;
 
@@ -33,16 +34,22 @@ int main()
             if (login()) {
                 std::cout << "\n        ---login successful---      \n";
 
-                // Prikaz forme za ulogovanog korisnika
+                // Prikaz forme za ulogovanog korisnika i logout
             }
-            else std::cout << "\n       ---login error---       \n";
+            // Error message for 'else' part is handled inside the function
         }
+
+        // Could implement some email verification code sending...
+        if (option == "-recover") {
+            if (! (X509Certificate::certRecovery()) ) {
+                std::cout << "Could not recover your certificate. \n";
+            }
+            else {
+                std::cout << "        ---Certificate recovery successful---       \n";
+            }
+        }
+
         
-        if (option == "-logout") {
-            if (!logout()) std::cout << "\n         ---logout error---      \n";
-        }
-
-
     } while (option != "-exit");
 
 
