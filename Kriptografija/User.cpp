@@ -153,7 +153,7 @@ int User::setAllCredentials()
 
 int User::writeUser()
 {
-    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string pathToFolder = "./Data/Korisnici/" + this->commonName + "/";
     string filename = pathToFolder + this->commonName + "_user.dat";
     
     std::ofstream myFile(filename.c_str(), std::ios::out | std::ios::binary);
@@ -176,7 +176,7 @@ int User::writeUser()
 
 int User::readUser(string commonName)
 {
-    string pathToFolder = "./Korisnici/" + commonName + "/";
+    string pathToFolder = "./Data/Korisnici/" + commonName + "/";
     string filename = pathToFolder + commonName + "_user.dat";
 
     std::ifstream myFile(filename.c_str(), std::ios::in | std::ios::binary);
@@ -198,7 +198,7 @@ int User::readUser(string commonName)
 
 int User::writePrivateKey()
 {
-    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string pathToFolder = "./Data/Korisnici/" + this->commonName + "/";
     string filename = pathToFolder + this->commonName + ".key";
 
     
@@ -217,7 +217,7 @@ int User::writePrivateKey()
 
 int User::writeCertificate()
 {
-    string pathToFolder = "./Korisnici/" + this->commonName + "/";
+    string pathToFolder = "./Data/Korisnici/" + this->commonName + "/";
     string filename = pathToFolder + this->commonName + ".crt";
 
     int rc = 0;

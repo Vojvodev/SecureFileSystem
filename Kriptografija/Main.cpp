@@ -32,7 +32,7 @@ int main()
 
         if (option == "-login") {
             if (login()) {
-                std::cout << "\n        ---login successful---      \n";
+                std::cout << "\n        ---login successful---      \n\n";
 
                 // Prikaz forme za ulogovanog korisnika i logout
             }

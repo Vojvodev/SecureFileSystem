@@ -169,9 +169,12 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	if (rc != 1) {
 		std::cout << "generate_x509->X509_set_version() error" << std::endl;
 	}
-	ASN1_INTEGER_set(X509_get_serialNumber(userCertRequest), 1L);
+
+	long serialNumber = readSerialNumber();
+	ASN1_INTEGER_set(X509_get_serialNumber(userCertRequest), serialNumber);
 	X509_gmtime_adj(X509_get_notBefore(userCertRequest), 0L);
 	X509_gmtime_adj(X509_get_notAfter(userCertRequest), 15768000L);		// Half a year
+	incrementSerialNumber(serialNumber);
 
 	X509_set_pubkey(userCertRequest, newUser->pkey);
 
@@ -269,6 +272,8 @@ X509* X509Certificate::loadCertificate(const char* pathToCert)
 
 EVP_PKEY* X509Certificate::readCertPrivKey(const char *pathToPrivateKey)
 {
+
+
 	EVP_PKEY* privKey = EVP_PKEY_new();
 
 	BIO* bio_key = NULL;
@@ -278,7 +283,7 @@ EVP_PKEY* X509Certificate::readCertPrivKey(const char *pathToPrivateKey)
 	privKey = PEM_read_bio_PrivateKey(bio_key, &privKey, NULL, (void*)PASSPHRASE);		// Zna automatski na osnovu hedera u fajlu koji je algoritam koristen
 
 	if (privKey == nullptr) {
-		std::cout << "My_X509_Certificate->load_key() Error" << std::endl;
+		std::cout << "COULD NOT READ PRIVATE KEY" << std::endl;
 	}
 
 
@@ -287,85 +292,226 @@ EVP_PKEY* X509Certificate::readCertPrivKey(const char *pathToPrivateKey)
 }
 
 
-
 int login()
 {
 	int rc = 1, i = 3;
+	
 	string userCertificatePath;
 	string userName;
 	string password;
 
 	EVP_PKEY* publicCAkey = nullptr;
+	EVP_PKEY* privateCAkey = nullptr;
+
 	User newUser;
 
+	X509Certificate userCertificate;
+	X509Certificate CAcertificate;
+
+
+
+	std::cout << "Unesite sertifikat za provjeru(vase korisnicko ime): ";
+	std::cin >> userName;
+
+
+	userCertificatePath = "./Data/Korisnici/" + userName + "/" + userName + ".crt";
+
+	userCertificate.myCertificate = userCertificate.loadCertificate(userCertificatePath.c_str());
+
+	CAcertificate.myCertificate = CAcertificate.loadCertificate((const char*)pathToCACert);
+
+
+	if (!userCertificate.myCertificate)
+	{ std::cout << "Could not load your certificate.\n ---Try again later--- \n\n"; return 0; }
+
+
+	// Extracting keys from the certificate 
+	publicCAkey = X509_get_pubkey(CAcertificate.myCertificate);
+	privateCAkey = CAcertificate.readCertPrivKey(pathToPrivateKey);
+
+
+
+	// Verifying the certificate
+	if (userCertificate.verifyTheCertificate(publicCAkey)) { std::cout << "\n---Certificate verified---\n\n"; }
+	else
+	{
+		std::cout << "\n--Login unsuccessful.-- \nCould not verify your certificate. \n ---Try again later--- \n\n";
+		return 0;
+	}
+
+
+	// Certificate is already verified
 	do {
+		
 		std::cout << "Unesite vase korisnicko ime: ";
 		std::cin >> userName;
 
 		std::cout << "Unesite vasu lozinku: ";
 		std::cin >> password;
 
-
-		userCertificatePath = "./Korisnici/" + userName + "/" + userName + ".crt";
-		
-
-		X509Certificate userCertificate;
-		userCertificate.myCertificate = userCertificate.loadCertificate(userCertificatePath.c_str());
-
-		X509Certificate CAcertificate;
-		CAcertificate.myCertificate = CAcertificate.loadCertificate((const char*)pathToCACert);
-
-
-		if (!userCertificate.myCertificate)
-		{
-			std::cout << "Non existing user name.\n--Try again-- \n"; i--; continue;
-		}
-
-
-
-		// Extracting public key from the certificate 
-		publicCAkey = X509_get_pubkey(CAcertificate.myCertificate);
-
-		// Verifying the certificate
-		if (!X509_verify(userCertificate.myCertificate, publicCAkey))
-		{
-			std::cout << "\n--Login unsuccessful.-- \nCould not verify your certificate. \n\n";
-			return 0;
-		}
-
-		newUser.readUser(userName);
-
 		
 		if (newUser.readUser(userName)) {
-			if (newUser.getPassword() == password)
+			if (newUser.getPassword() == password && newUser.getCommonName() == userName)
 			{
-				EVP_PKEY_free(publicCAkey);
+				if (!publicCAkey) EVP_PKEY_free(publicCAkey);
+				if (!privateCAkey) EVP_PKEY_free(privateCAkey);
 				return rc;
 			}
 			else
-			{
-				std::cout << "Wrong password\nTry again: \n"; i--; continue;
-			}
+			{ std::cout << "Wrong username or password\n ---Try again--- \n"; i--; continue; }
 		}
-		else {i--;}
+		else { std::cout << "Wrong username or password\n ---Try again--- \n"; i--; continue; }
 
 		} while (i < 3 && i > 0);
 
+
 		if (i == 0)
-		{
+		{	
+			// Certificate gets revoked
+			if (userCertificate.myCertificate)
+			{
+				userCertificate.revokeCertificate(privateCAkey);
+			}
+			else 
+			{ std::cout << "Three unsuccessful login attempts. Try again later. \n"; }
 
-			// TODO: revoke certificate IMA U TXT FAJLU
 
-
-			std::cout << "Three unsuccessful login attempts -> your certificate has been revoked. \n";
-			std::cout << "You can recover your certificate later or register a new account. \n";
 			rc = 0;
 		}
 
 
 
 	if(!publicCAkey) EVP_PKEY_free(publicCAkey);
+	if (!privateCAkey) EVP_PKEY_free(privateCAkey);
 	return rc;
+}
+
+int readSerialNumber()
+{
+	int i = 0;
+	FILE* myfile;
+	
+	fopen_s(&myfile, pathToSerial, "r");
+	if (myfile)
+	{
+
+		fscanf_s(myfile, "%d", &i);
+
+
+		fclose(myfile);
+	}
+	else std::cout << "CAN NOT OPEN SERIAL.TXT FOR READ \n";
+
+
+	return i;
+}
+
+void incrementSerialNumber(int i)
+{
+	i++;
+	FILE* myfile;
+
+	fopen_s(&myfile, pathToSerial, "w");
+	if (!myfile) std::cout << "CAN NOT OPEN SERIAL.TXT FOR READ \n";
+
+
+	fprintf(myfile, "%d", i);
+	fclose(myfile);
+}
+
+
+int X509Certificate::verifyTheCertificate(EVP_PKEY *publicCAkey)
+{
+	int rc = 1, rc1 = 0, rc2 = 0;
+
+	X509_CRL *crl = nullptr;
+	BIO *bio_out = NULL;
+
+	bio_out = BIO_new_file(pathToCrlList, "r");
+
+	if (bio_out)
+	{
+		X509_CRL* crl = PEM_read_bio_X509_CRL(bio_out, NULL, NULL, NULL);
+		BIO_free(bio_out);
+
+		X509_STORE* store = X509_STORE_new();
+		if (store) X509_STORE_add_crl(store, crl);
+
+		X509_STORE_CTX* ctx = X509_STORE_CTX_new();
+		if (ctx)
+		{
+			X509_STORE_CTX_init(ctx, store, this->myCertificate, NULL);
+
+			// Verify the certificate against the crl
+			rc = X509_verify_cert(ctx);
+
+			X509_STORE_CTX_free(ctx);
+		}
+
+		X509_STORE_free(store);
+		X509_CRL_free(crl);
+	}
+
+	// Verify for CA key
+	rc1 = X509_verify(this->myCertificate, publicCAkey);
+
+
+	if (rc == 1 && rc1 == 1) { return 1; }
+	else { return 0; }
+}
+
+
+void X509Certificate::revokeCertificate(EVP_PKEY* privateCAkey)
+{
+
+	X509_CRL* crl = X509_CRL_new();
+
+	X509_NAME* issuerName = X509_get_issuer_name(this->myCertificate);
+	X509_CRL_set_issuer_name(crl, issuerName);
+
+	X509_REVOKED* revokedCert = X509_REVOKED_new();
+	ASN1_INTEGER* serial = X509_get_serialNumber(this->myCertificate);
+	X509_REVOKED_set_serialNumber(revokedCert, serial);
+
+	X509_CRL_add0_revoked(crl, revokedCert);
+
+	// Set the time of revocation
+	ASN1_TIME* tm = ASN1_TIME_new();
+	ASN1_TIME_set(tm, time(NULL));
+	X509_REVOKED_set_revocationDate(revokedCert, tm);
+	
+
+	// Set revocation reason to PRIVILEGE_WITHDRAWN
+	ASN1_ENUMERATED* reasonCode = ASN1_ENUMERATED_new();
+	if (reasonCode)
+	{
+		ASN1_ENUMERATED_set(reasonCode, CRL_REASON_PRIVILEGE_WITHDRAWN);
+		X509_EXTENSION* ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, reasonCode);
+
+		if (ext)
+		{
+			X509_REVOKED_add_ext(revokedCert, ext, -1);
+			X509_EXTENSION_free(ext);
+		}
+		ASN1_ENUMERATED_free(reasonCode);
+	}
+
+
+	// Sign the CRL using CA's private key
+	X509_CRL_set_version(crl, 1);
+	X509_CRL_sign(crl, privateCAkey, EVP_sha256());
+
+	// Write crl list to a file
+	BIO* bio_out = NULL;
+	bio_out = BIO_new_file(pathToCrlList, "a");
+		
+	PEM_write_bio_X509_CRL(bio_out, crl);
+
+
+	BIO_free(bio_out);
+	
+	std::cout << "Three unsuccessful login attempts -> your certificate has been revoked. \n";
+	std::cout << "You can recover your certificate later or register a new account. \n";
 }
 
 
