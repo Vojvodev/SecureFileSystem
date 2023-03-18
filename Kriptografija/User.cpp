@@ -1,6 +1,6 @@
+
+
 #include "User.h"
-
-
 
 
 
@@ -115,11 +115,29 @@ User::~User()
 int User::setAllCredentials()
 {
     string password = "x", repeatPassword = "o";		// Login credentials are commonName and password
+    int control = 0;
+
+    do {
+
+        std::cout << "\nOdaberite vase korisnicko ime: ";
+        std::cin >> this->commonName;
+
+
+        
+        string pathToFolder = "./Data/Korisnici/" + this->commonName + "/";
+        string filename = pathToFolder + this->commonName + "_user.dat";
 
 
 
-    std::cout << "\nOdaberite vase korisnicko ime: ";
-    std::cin >> this->commonName;
+        std::ifstream isDuplicate(filename.c_str(), std::ios::in);
+        if (isDuplicate.is_open()) { isDuplicate.close(); std::cout << "Name not available. Try a different one. \n"; control = 0; }
+        else control = 1;
+    } while (!control);
+
+
+
+
+
 
     while (password != repeatPassword) {
         std::cout << "\nOdaberite vasu lozinku: ";
@@ -156,6 +174,7 @@ int User::writeUser()
     string pathToFolder = "./Data/Korisnici/" + this->commonName + "/";
     string filename = pathToFolder + this->commonName + "_user.dat";
     
+
     std::ofstream myFile(filename.c_str(), std::ios::out | std::ios::binary);
     if (!myFile) return 0;
 

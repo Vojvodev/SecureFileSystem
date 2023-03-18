@@ -3,6 +3,8 @@
 #include "ManageAccounts.h"
 
 
+
+
 X509Certificate::X509Certificate() : myCertificate(nullptr), pkey(nullptr) {}
 
 X509Certificate::~X509Certificate() {
@@ -39,11 +41,11 @@ int registrate()
 			std::cout << "CAN NOT GENERATE CERTIFICATE \n";
 			return -1;
 		}
-	
-
+		
 		
 		// Creates a directory to save all the information about one user
-		std::filesystem::create_directory("./Korisnici/" + newUser.commonName);					// In project properties c++17 or higher
+		std::filesystem::create_directory("./Data/Korisnici/" + newUser.commonName);					// In project properties c++17 or higher
+
 
 		// Storing user's information to a file
 		if (!newUser.writeUser()) {
@@ -171,10 +173,14 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	}
 
 	long serialNumber = readSerialNumber();
-	ASN1_INTEGER_set(X509_get_serialNumber(userCertRequest), serialNumber);
+	ASN1_INTEGER* ASNserial = ASN1_INTEGER_new();
+	ASN1_INTEGER_set(ASNserial, serialNumber);
+
+	X509_set_serialNumber(userCertRequest, ASNserial);
 	X509_gmtime_adj(X509_get_notBefore(userCertRequest), 0L);
 	X509_gmtime_adj(X509_get_notAfter(userCertRequest), 15768000L);		// Half a year
-	incrementSerialNumber(serialNumber);
+
+	//ASN1_INTEGER_free(ASNserial);			// Do not free this
 
 	X509_set_pubkey(userCertRequest, newUser->pkey);
 
@@ -200,7 +206,7 @@ X509* X509Certificate::generateCertificate(User* newUser)
 	// Then we open it to read the private key
 	EVP_PKEY* CApkey = this->readCertPrivKey((const char*)pathToPrivateKey);
 
-
+	
 	// Adding respectively countryName, stateOrProvinceName, location, organizationName, organizationUnit, commonName, issuerName
 	X509_NAME_add_entry_by_txt(p_name, "C",  MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->country).c_str()),			  -1, -1, 0);
 	X509_NAME_add_entry_by_txt(p_name, "ST", MBSTRING_ASC, reinterpret_cast<const unsigned char*>((newUser->state).c_str()),			  -1, -1, 0);
@@ -231,6 +237,9 @@ X509* X509Certificate::generateCertificate(User* newUser)
 
 	EVP_PKEY_free(CApkey);
 	X509_free(CAcert);
+
+
+	incrementSerialNumber(serialNumber);
 	return userCertRequest;
 }
 
@@ -310,7 +319,7 @@ int login()
 
 
 
-	std::cout << "Unesite sertifikat za provjeru(vase korisnicko ime): ";
+	std::cout << "Write your certificate for verification(your user name): ";
 	std::cin >> userName;
 
 
@@ -322,7 +331,13 @@ int login()
 
 
 	if (!userCertificate.myCertificate)
-	{ std::cout << "Could not load your certificate.\n ---Try again later--- \n\n"; return 0; }
+	{ 
+		std::cout << "Could not load your certificate.\n ---Try again later--- \n\n";
+		
+		if (publicCAkey) EVP_PKEY_free(publicCAkey);
+		if (privateCAkey) EVP_PKEY_free(privateCAkey);
+		return 0; 
+	}
 
 
 	// Extracting keys from the certificate 
@@ -335,7 +350,11 @@ int login()
 	if (userCertificate.verifyTheCertificate(publicCAkey)) { std::cout << "\n---Certificate verified---\n\n"; }
 	else
 	{
-		std::cout << "\n--Login unsuccessful.-- \nCould not verify your certificate. \n ---Try again later--- \n\n";
+		std::cout << "\n ---Login unsuccessful.--- \nCould not verify your certificate. \n ---Try again later--- \n\n";
+
+		
+		if (publicCAkey) EVP_PKEY_free(publicCAkey);
+		if (privateCAkey) EVP_PKEY_free(privateCAkey);
 		return 0;
 	}
 
@@ -343,18 +362,27 @@ int login()
 	// Certificate is already verified
 	do {
 		
-		std::cout << "Unesite vase korisnicko ime: ";
+		std::cout << "Write your name: ";
 		std::cin >> userName;
 
-		std::cout << "Unesite vasu lozinku: ";
+		std::cout << "Write your password: ";
 		std::cin >> password;
 
 		
 		if (newUser.readUser(userName)) {
 			if (newUser.getPassword() == password && newUser.getCommonName() == userName)
 			{
-				if (!publicCAkey) EVP_PKEY_free(publicCAkey);
-				if (!privateCAkey) EVP_PKEY_free(privateCAkey);
+				if (publicCAkey) EVP_PKEY_free(publicCAkey);
+				if (privateCAkey) EVP_PKEY_free(privateCAkey);
+
+
+				// Call to function loggedIn to continue the program in a logged in manner
+				std::cout << "\n\n\n ---login successful---      \n\n";
+				loggedIn(userName);
+
+				std::cout << "\n ---logged out---      \n\n";
+
+
 				return rc;
 			}
 			else
@@ -372,8 +400,6 @@ int login()
 			{
 				userCertificate.revokeCertificate(privateCAkey);
 			}
-			else 
-			{ std::cout << "Three unsuccessful login attempts. Try again later. \n"; }
 
 
 			rc = 0;
@@ -381,27 +407,25 @@ int login()
 
 
 
-	if(!publicCAkey) EVP_PKEY_free(publicCAkey);
-	if (!privateCAkey) EVP_PKEY_free(privateCAkey);
+
+	if(publicCAkey) EVP_PKEY_free(publicCAkey);
+	if(privateCAkey) EVP_PKEY_free(privateCAkey);
 	return rc;
 }
 
 int readSerialNumber()
 {
 	int i = 0;
-	FILE* myfile;
 	
-	fopen_s(&myfile, pathToSerial, "r");
-	if (myfile)
+	std::ifstream inputFile(pathToSerial, std::ios::in);
+	if (inputFile.is_open())
 	{
+		inputFile >> i;
 
-		fscanf_s(myfile, "%d", &i);
-
-
-		fclose(myfile);
+		inputFile.close();
 	}
-	else std::cout << "CAN NOT OPEN SERIAL.TXT FOR READ \n";
-
+	else std::cout << "CAN NOT OPEN SERIAL.TXT FOR READ";
+	
 
 	return i;
 }
@@ -409,54 +433,108 @@ int readSerialNumber()
 void incrementSerialNumber(int i)
 {
 	i++;
-	FILE* myfile;
 
-	fopen_s(&myfile, pathToSerial, "w");
-	if (!myfile) std::cout << "CAN NOT OPEN SERIAL.TXT FOR READ \n";
+	std::ofstream outputFile(pathToSerial, std::ios::out);
+	if (outputFile.is_open())
+	{
+		outputFile << i;
 
+		outputFile.close();
+	}else std::cout << "CAN NOT OPEN SERIAL.TXT FOR WRITE \n";
 
-	fprintf(myfile, "%d", i);
-	fclose(myfile);
 }
 
 
-int X509Certificate::verifyTheCertificate(EVP_PKEY *publicCAkey)
+int X509Certificate::verifyTheCertificate(EVP_PKEY *publicCAkey)				
 {
-	int rc = 1, rc1 = 0, rc2 = 0;
+	int rc = 0, rc1 = 0;
+	int crlSerialNumber, userSerialNumber;
+	string line;
 
-	X509_CRL *crl = nullptr;
-	BIO *bio_out = NULL;
+	ASN1_INTEGER* serial = X509_get_serialNumber(this->myCertificate);
+	userSerialNumber = ASN1_INTEGER_get(serial);
 
-	bio_out = BIO_new_file(pathToCrlList, "r");
 
-	if (bio_out)
+
+	std::ifstream inputFile(pathToCrlList, std::ios::in);
+	if (inputFile.is_open())
 	{
-		X509_CRL* crl = PEM_read_bio_X509_CRL(bio_out, NULL, NULL, NULL);
-		BIO_free(bio_out);
-
-		X509_STORE* store = X509_STORE_new();
-		if (store) X509_STORE_add_crl(store, crl);
-
-		X509_STORE_CTX* ctx = X509_STORE_CTX_new();
-		if (ctx)
+		while (std::getline(inputFile, line))
 		{
-			X509_STORE_CTX_init(ctx, store, this->myCertificate, NULL);
-
-			// Verify the certificate against the crl
-			rc = X509_verify_cert(ctx);
-
-			X509_STORE_CTX_free(ctx);
+			crlSerialNumber = std::stoi(line);
+			if (userSerialNumber == crlSerialNumber)
+			{
+				rc = 1; if (inputFile) inputFile.close(); break;
+			}
 		}
+		
 
-		X509_STORE_free(store);
-		X509_CRL_free(crl);
+		if(inputFile) inputFile.close();
 	}
+	else std::cout << "CAN NOT OPEN CRL FOR READ \n";
+
+	//ASN1_INTEGER_free(serial);		// NO
+	
+
+	//		X509_CRL *crl = nullptr;
+	//		BIO *bio_out = NULL;
+	//		
+	//		bio_out = BIO_new_file(pathToCrlList, "r");
+	//		
+	//		if (bio_out)
+	//		{
+	//			X509_CRL* crl = X509_CRL_new();
+	//			crl = PEM_read_bio_X509_CRL(bio_out, &crl, NULL, NULL);
+	//			if (!crl) {
+	//				
+	//				unsigned long err = ERR_get_error();
+	//				char err_buff[256];
+	//			
+	//				ERR_error_string_n(err, err_buff, sizeof(err_buff));
+	//			
+	//				std::cout << err_buff;
+	//		
+	//				std::cout << "ERROR WHILE READING CRL LIST! \n";
+	//			}
+	//			BIO_free(bio_out);
+	//		
+	//		
+	//			ASN1_INTEGER *serial = X509_get_serialNumber(this->myCertificate);
+	//			X509_REVOKED *revokedCertificate = X509_REVOKED_new();
+	//		
+	//			// Search if the serial number of the certificate exists in the CRL list, rc = 0 if revokedCertificate is NOT FOUND
+	//			rc = X509_CRL_get0_by_serial(crl, &revokedCertificate, serial);
+	//
+	//	
+	//
+	//	//X509_STORE* store = X509_STORE_new();
+		//if (store) X509_STORE_add_crl(store, crl);
+		//X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK);
+		//
+		//X509_STORE_CTX* ctx = X509_STORE_CTX_new();
+		//if (ctx)
+		//{
+		//	X509_STORE_CTX_init(ctx, store, this->myCertificate, NULL);
+		//
+		//	// Verify the certificate against the crl
+		//	rc = X509_verify_cert(ctx);
+		//
+		//	X509_STORE_CTX_free(ctx);
+		//}
+	//
+	//	//X509_STORE_free(store);
+	//	X509_CRL_free(crl);
+	//}
+
+
+
+
 
 	// Verify for CA key
-	rc1 = X509_verify(this->myCertificate, publicCAkey);
+	rc1 = X509_verify(this->myCertificate, publicCAkey);		// 1 - if good
 
 
-	if (rc == 1 && rc1 == 1) { return 1; }
+	if (rc == 0 && rc1 == 1) { return 1; }						// Good
 	else { return 0; }
 }
 
@@ -464,52 +542,78 @@ int X509Certificate::verifyTheCertificate(EVP_PKEY *publicCAkey)
 void X509Certificate::revokeCertificate(EVP_PKEY* privateCAkey)
 {
 
-	X509_CRL* crl = X509_CRL_new();
-
-	X509_NAME* issuerName = X509_get_issuer_name(this->myCertificate);
-	X509_CRL_set_issuer_name(crl, issuerName);
-
-	X509_REVOKED* revokedCert = X509_REVOKED_new();
+	//			X509_CRL* crl = X509_CRL_new();
+	//			
+	//			X509_NAME* issuerName = X509_get_issuer_name(this->myCertificate);
+	//			X509_CRL_set_issuer_name(crl, issuerName);
+	//			
+	//			
+	//			
+	//			
+	//			X509_REVOKED* revokedCert = X509_REVOKED_new();
+	//			ASN1_INTEGER* serial = ASN1_INTEGER_new();
+	//			serial = X509_get_serialNumber(this->myCertificate);
+	//			X509_REVOKED_set_serialNumber(revokedCert, serial);
+	//			
+	//			
+	//			X509_CRL_add0_revoked(crl, revokedCert);
+	//			
+	//			// Set the time of revocation
+	//			ASN1_TIME* tm = ASN1_TIME_new();
+	//			ASN1_TIME_set(tm, time(NULL));
+	//			X509_REVOKED_set_revocationDate(revokedCert, tm);
+	//			
+	//			
+	//			// Set revocation reason to PRIVILEGE_WITHDRAWN
+	//			ASN1_ENUMERATED* reasonCode = ASN1_ENUMERATED_new();
+	//			if (reasonCode)
+	//			{
+	//				ASN1_ENUMERATED_set(reasonCode, CRL_REASON_PRIVILEGE_WITHDRAWN);
+	//				X509_EXTENSION* ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, reasonCode);
+	//			
+	//				if (ext)
+	//				{
+	//					X509_REVOKED_add_ext(revokedCert, ext, -1);
+	//					X509_EXTENSION_free(ext);
+	//				}
+	//				ASN1_ENUMERATED_free(reasonCode);
+	//			}
+	//			
+	//			
+	//			// Sign the CRL using CA's private key
+	//			X509_CRL_set_version(crl, 1L);
+	//			X509_CRL_sign(crl, privateCAkey, EVP_sha256());
+	//			
+	//			// Write crl list to a file
+	//			BIO* bio_out = NULL;
+	//			bio_out = BIO_new_file(pathToCrlList, "a");
+	//				
+	//			PEM_write_bio_X509_CRL(bio_out, crl);
+	//			
+	//			
+	//			
+	//			X509_CRL_free(crl);
+	//			//X509_NAME_free(issuerName);						// These should not be freed for some reason
+	//			//X509_REVOKED_free(revokedCert);
+	//			//ASN1_INTEGER_free(serial);
+	//			//ASN1_TIME_free(tm);
+	//			BIO_free(bio_out);
+	
 	ASN1_INTEGER* serial = X509_get_serialNumber(this->myCertificate);
-	X509_REVOKED_set_serialNumber(revokedCert, serial);
-
-	X509_CRL_add0_revoked(crl, revokedCert);
-
-	// Set the time of revocation
-	ASN1_TIME* tm = ASN1_TIME_new();
-	ASN1_TIME_set(tm, time(NULL));
-	X509_REVOKED_set_revocationDate(revokedCert, tm);
 	
 
-	// Set revocation reason to PRIVILEGE_WITHDRAWN
-	ASN1_ENUMERATED* reasonCode = ASN1_ENUMERATED_new();
-	if (reasonCode)
+	std::ofstream outputFile(pathToCrlList, std::ios::out | std::ios::app);
+	if (outputFile.is_open())
 	{
-		ASN1_ENUMERATED_set(reasonCode, CRL_REASON_PRIVILEGE_WITHDRAWN);
-		X509_EXTENSION* ext = X509_EXTENSION_create_by_NID(NULL, NID_crl_reason, 0, reasonCode);
+		outputFile << std::to_string(ASN1_INTEGER_get(serial)) << std::endl;
 
-		if (ext)
-		{
-			X509_REVOKED_add_ext(revokedCert, ext, -1);
-			X509_EXTENSION_free(ext);
-		}
-		ASN1_ENUMERATED_free(reasonCode);
+		outputFile.close();
 	}
+	else std::cout << "CAN NOT OPEN CRL FOR WRITE \n";
 
 
-	// Sign the CRL using CA's private key
-	X509_CRL_set_version(crl, 1);
-	X509_CRL_sign(crl, privateCAkey, EVP_sha256());
+	//ASN1_INTEGER_free(serial);			// Should not free ASN1_INTEGER
 
-	// Write crl list to a file
-	BIO* bio_out = NULL;
-	bio_out = BIO_new_file(pathToCrlList, "a");
-		
-	PEM_write_bio_X509_CRL(bio_out, crl);
-
-
-	BIO_free(bio_out);
-	
 	std::cout << "Three unsuccessful login attempts -> your certificate has been revoked. \n";
 	std::cout << "You can recover your certificate later or register a new account. \n";
 }
@@ -518,5 +622,113 @@ void X509Certificate::revokeCertificate(EVP_PKEY* privateCAkey)
 
 int X509Certificate::certRecovery()
 {
-	return 0;
+	string line, userName, password, userCertificatePath;
+	X509Certificate userCertificate;
+	User newUser;
+
+	std::cout << "-Write your credentials correctly in order to recover your account- \n";
+
+	std::cout << "Write your name: ";
+	std::cin >> userName;
+
+	std::cout << "Write your password: ";
+	std::cin >> password;
+
+	// Checking if the user name exists
+	userCertificatePath = "./Data/Korisnici/" + userName + "/" + userName + ".crt";
+	userCertificate.myCertificate = userCertificate.loadCertificate(userCertificatePath.c_str());
+
+	if (!userCertificate.myCertificate)
+	{
+		std::cout << "Could not load your certificate.\n ---Try again later--- \n\n"; return 0;
+	}
+
+	// Checking the password
+	if (newUser.readUser(userName)) {
+		if (newUser.getPassword() == password && newUser.getCommonName() == userName)
+		{
+			// Everything correct
+
+
+			std::ifstream inputFile(pathToCrlList, std::ios::in);
+			if (inputFile.is_open())
+			{
+				ASN1_INTEGER* serial = X509_get_serialNumber(userCertificate.myCertificate);
+				int userSerialNumber = ASN1_INTEGER_get(serial);
+				string serialNumber = std::to_string(userSerialNumber);
+
+				inputFile.close();
+
+				// Erases the serial number of the certificate from CRL list
+				eraseFileLine(pathToCrlList, serialNumber);
+				
+			}
+			else std::cout << "CAN NOT OPEN CRL FOR READ \n";
+
+
+
+		}
+		else
+		{
+			std::cout << "Wrong username or password\n ---Try again--- \n"; return 0;;
+		}
+	}
+
+
+
+
+
+	return 1;
+}
+
+
+void eraseFileLine(string path, string eraseLine) {
+	
+	string line;
+
+	std::ifstream fin(path);
+	std::ofstream temp("./Data/temp.txt");
+
+	
+	while (getline(fin, line))
+	{
+		if (strcmp(line.c_str(), eraseLine.c_str()))
+			temp << line << std::endl;
+	}
+	
+	temp.close();
+	fin.close();
+
+	if (std::remove("./Data/crl.txt") != 0)
+		perror("Error deleting file");
+	std::rename("./Data/temp.txt", "./Data/crl.txt");
+}
+
+
+void loggedIn(string userName)
+{
+	string option;
+
+
+	std::cout << "\n          - Welcome: "<< userName <<" -         \n";
+	std::cout << "What do you want to do ? \n\n";
+
+	std::cout << "To download your files, enter		-download \n";
+	std::cout << "To upload your files, enter		-upload \n";
+	std::cout << "To log out, enter			-logout \n\n\n";
+
+
+
+	do {
+		std::cout << "Enter one of the options above:  ";
+
+		std::cout << "\n\n";
+		std::cin >> option;
+
+
+		// TODO: implement -download and -upload
+
+	} while (option != "-logout");
+
+
 }

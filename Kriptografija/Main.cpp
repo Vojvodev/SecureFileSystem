@@ -1,5 +1,7 @@
 
+
 #include "ManageAccounts.h"
+
 
 
 
@@ -24,20 +26,18 @@ int main()
         std::cout << "\n\n";
         std::cin >> option;
 
+
         if (option == "-registrate") {
-            if (!registrate()) std::cout << "\n      ---Registration successful---      \n";
-            else std::cout << "\n       ---Registration error---        \n";
+            if (!registrate()) std::cout << "\n ---Registration successful---      \n";
+            else std::cout << "\n ---Registration error---        \n";
             
         }
 
-        if (option == "-login") {
-            if (login()) {
-                std::cout << "\n        ---login successful---      \n\n";
 
-                // Prikaz forme za ulogovanog korisnika i logout
-            }
-            // Error message for 'else' part is handled inside the function
+        if (option == "-login") {
+            login();        // Main part of the program
         }
+
 
         // Could implement some email verification code sending...
         if (option == "-recover") {
@@ -45,7 +45,7 @@ int main()
                 std::cout << "Could not recover your certificate. \n";
             }
             else {
-                std::cout << "        ---Certificate recovery successful---       \n";
+                std::cout << "\n ---Certificate recovery successful---       \n";
             }
         }
 
