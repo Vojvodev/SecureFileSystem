@@ -24,13 +24,6 @@ constexpr auto pathToSerial =	  "./Data/serial.txt";
 #include <stdio.h>
 #include <fstream>
 #include <string>
-//#include <iomanip>
-//#include <memory>
-//#include <sstream>
-//#include <exception>
-//#include <cstdint>
-//#include <cassert>
-//#include <stdlib.h>
 
 
 #include <openssl/ssl.h>

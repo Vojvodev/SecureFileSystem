@@ -1,7 +1,7 @@
 
 
 #include "ManageAccounts.h"
-
+#include "FileHandling.h"
 
 
 
@@ -726,7 +726,12 @@ void loggedIn(string userName)
 		std::cin >> option;
 
 
-		// TODO: implement -download and -upload
+		if (option == "-upload") {
+			if(upload()) std::cout << "\n ---Upload successful---      \n";
+			else std::cout << "\n ---Could not upload files---        \n";
+		}
+
+		// TODO: implement -download
 
 	} while (option != "-logout");
 

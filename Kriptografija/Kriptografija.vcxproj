@@ -136,11 +136,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileHandling.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="ManageAccounts.cpp" />
     <ClCompile Include="User.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FileHandling.h" />
     <ClInclude Include="ManageAccounts.h" />
     <ClInclude Include="User.h" />
   </ItemGroup>

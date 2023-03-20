@@ -119,7 +119,7 @@ int User::setAllCredentials()
 
     do {
 
-        std::cout << "\nOdaberite vase korisnicko ime: ";
+        std::cout << "\nChoose your user name: ";
         std::cin >> this->commonName;
 
 
@@ -140,30 +140,30 @@ int User::setAllCredentials()
 
 
     while (password != repeatPassword) {
-        std::cout << "\nOdaberite vasu lozinku: ";
+        std::cout << "\nChoose your password: ";
         std::cin >> password;
 
-        std::cout << "\nPotvrdite unos lozinke: ";
+        std::cout << "\nRepat password: ";
         std::cin >> repeatPassword;
     }
     this->password = password;
 
-    std::cout << "\nUnesite email: ";
+    std::cout << "\nWrite your email: ";
     std::cin >> this->emailAddress;
 
-    std::cout << "\nUnesite drzavu: ";
+    std::cout << "\nWrite your country name: ";
     std::cin >> this->country;
 
-    std::cout << "\nUnesite entitet: ";
+    std::cout << "\nWrite your state name: ";
     std::cin >> this->state;
 
-    std::cout << "\nUnesite grad: ";
+    std::cout << "\nWrite your town name [locality]: ";
     std::cin >> this->locality;
 
-    std::cout << "\nUnesite ime organizacije: ";
+    std::cout << "\nWrite your organisation name: ";
     std::cin >> this->organisationName;
 
-    std::cout << "\nUnesite ime organizacione jedinice: ";
+    std::cout << "\nWrite your organisational unit name: ";
     std::cin >> this->organisationalUnit;
 
     return 0;
