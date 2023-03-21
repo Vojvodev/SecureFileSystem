@@ -8,16 +8,181 @@
 
 
 
-int upload()
+int upload(string userName)
 {
-	string pathForUpload;
+	string pathForUpload, fileName, extension;
+	long long fileSize;
+	long long currentVectorPosition = 0;
+	int control, numberOfComponents;
+
 
 	std::cout << "\nWrite the path to your file: \n";
 	std::cin >> pathForUpload;
 
+	do {
+		std::cout << "\nHow do you want to save it [file name]: \n";
+		std::cin >> fileName;
+
+		control = 0;
+
+		std::ifstream checkFilesForName("./Data/Korisnici/" + userName + "/" + fileName, std::ios::in);
+		if (checkFilesForName.is_open()) {
+			std::cout << "Choose a different name. \n\n";  control = 1; checkFilesForName.close();
+		}
+
+	} while (control);
+	// std::cout << "\nWrite your file's extension: \n";
+	// std::cin >> extension;
+
+
+
+	// Reading the file data in binary mode and storing it's contents in a vector
+	std::vector<BYTE> fileData = readFile(pathForUpload.c_str());
+	
+
+	// Read file size
+	std::ifstream inputFile(pathForUpload, std::ios::in, std::ios::binary);
+	if (inputFile.is_open())
+	{
+		inputFile.seekg(0, std::ios::end);
+		fileSize = inputFile.tellg();
+
+		// Return the pointer to the beginning
+		inputFile.seekg(0, std::ios::beg);
+
+
+		inputFile.close();
+	}
+	else {
+		std::cout << "Could not find your file, try again \n"; return 0;
+	}
+
+
+
+	// Getting a random number for the number of components after dissecting the file, the number is between 4 and 10
+	srand(time(NULL));
+	numberOfComponents = rand() % 7 + 4;	
+
+
+	// Create random key and iv values for this user file
+	std::vector<BYTE> key(32); // 256-bit key
+	std::vector<BYTE> iv(EVP_MAX_IV_LENGTH); // random IV (Salt value)
+
+	// Key and IV values are random
+	RAND_bytes(key.data(), key.size());
+	RAND_bytes(iv.data(), iv.size());
+
+
+
+	for (int i = 0; i < numberOfComponents; i++)
+	{
+		string smallFilePath = "./Data/Korisnici/" + userName + "/" + fileName + std::to_string(i) + ".dat";
+	
+		// Number of bytes in each small file
+		long long numberOfBytes = fileSize / numberOfComponents;
+
+
+		// Takes more bytes 
+		if (i == 0)
+		{
+			numberOfBytes += fileSize - numberOfComponents * numberOfBytes;
+		}
+		
+
+
+		std::vector<BYTE> smallVector(fileData.begin() + currentVectorPosition, fileData.begin() + currentVectorPosition + numberOfBytes - 1);
+
+		
+		// Encrypting file contents
+		std::vector<BYTE> smallVectorEncrypted = encrypt(smallVector, key, iv);
+
+
+		// New file is created with the contents of smallVectorEncrypted
+		std::ofstream smallFile(smallFilePath, std::ios::out, std::ios::binary);
+		if (smallFile.is_open())
+		{
+
+			smallFile.write( reinterpret_cast<const char*>(&smallVectorEncrypted[0]), smallVectorEncrypted.size() * sizeof(BYTE));
+
+			smallFile.close();
+		}
+		else std::cout << "Error creating small file. \n";
 
 
 
 
-	return 0;
+		currentVectorPosition += numberOfBytes;
+
+	}
+
+
+	return 1;	// Good
+}
+
+
+std::vector<BYTE> readFile(const char *inputFile)
+{
+	std::streampos fileSize;
+	std::ifstream fileName(inputFile, std::ios::binary);
+
+	if (fileName.is_open())
+	{
+		// Get the size
+		fileName.seekg(0, std::ios::end);
+		fileSize = fileName.tellg();
+
+		// Return the pointer to the beginning
+		fileName.seekg(0, std::ios::beg);
+
+		std::vector<BYTE> fileData(fileSize);
+
+		fileName.read((char*)&fileData[0], fileSize);
+
+
+
+		fileName.close();
+		return fileData;
+	}
+	else std::cout<<"Could not find your file. \nTry again. \n\n";
+
+}
+
+
+std::vector<BYTE> encrypt(std::vector<BYTE> smallVector, std::vector<BYTE> key, std::vector<BYTE> iv)
+{
+
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+	EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data());
+
+	std::vector<BYTE> ciphertext(smallVector.size() + EVP_MAX_BLOCK_LENGTH);
+
+	// Encrypt the plaintext
+	int len;
+	EVP_EncryptUpdate(ctx, ciphertext.data(), &len, smallVector.data(), smallVector.size());
+	int ciphertext_len = len;
+
+	// Finalize the encryption.
+	EVP_EncryptFinal_ex(ctx, ciphertext.data() + ciphertext_len, &len);
+	ciphertext_len += len;
+
+	
+	EVP_CIPHER_CTX_free(ctx);
+
+
+	return ciphertext;
+}
+
+
+void listFiles(string userName)
+{
+	std::filesystem::path pathToDir = "./Data/Korisnici/" + userName;
+
+	for (const auto& entry : std::filesystem::directory_iterator(pathToDir))
+	{
+		if (entry.is_regular_file())
+		{
+			std::cout << entry.path() << std::endl;
+		}
+	}
+
 }

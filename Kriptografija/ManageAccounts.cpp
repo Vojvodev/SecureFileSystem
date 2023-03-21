@@ -713,9 +713,11 @@ void loggedIn(string userName)
 	std::cout << "\n          - Welcome: "<< userName <<" -         \n";
 	std::cout << "What do you want to do ? \n\n";
 
-	std::cout << "To download your files, enter		-download \n";
-	std::cout << "To upload your files, enter		-upload \n";
-	std::cout << "To log out, enter			-logout \n\n\n";
+	
+	std::cout << "To see the list of your files, enter		-list \n";
+	std::cout << "To download your files, enter				-download \n";
+	std::cout << "To upload your files, enter				-upload \n";
+	std::cout << "To log out, enter					-logout \n\n\n";
 
 
 
@@ -727,9 +729,14 @@ void loggedIn(string userName)
 
 
 		if (option == "-upload") {
-			if(upload()) std::cout << "\n ---Upload successful---      \n";
+			if(upload(userName)) std::cout << "\n ---Upload successful---      \n";
 			else std::cout << "\n ---Could not upload files---        \n";
 		}
+
+		if (option == "-list") {
+			listFiles(userName);
+		}
+
 
 		// TODO: implement -download
 
