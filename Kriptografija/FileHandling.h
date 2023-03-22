@@ -25,6 +25,3 @@ std::vector<BYTE> encrypt(std::vector<BYTE>, std::vector<BYTE>, std::vector<BYTE
 // Writes out all the files for one user, param. that user
 void listFiles(string);
 
-
-
-int download();

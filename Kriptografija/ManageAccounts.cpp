@@ -737,8 +737,7 @@ void loggedIn(string userName)
 			listFiles(userName);
 		}
 
-
-		// TODO: implement -download
+		// TODO: Implement -download option
 
 	} while (option != "-logout");
 

@@ -5,7 +5,9 @@
 
 
 
-
+// To ensure that file fragments are not changed (file integrity), we could calculate hash of each fragment - digital signature
+// To make decryption easier, istead of a random key, we could use user's public key for encryption and his private key for decryption
+// To save the symmetric key, we can use digital envelope mechanism (encrypting the symmetric key with asymmetric one)
 
 
 int upload(string userName)
@@ -36,8 +38,9 @@ int upload(string userName)
 		}
 
 	} while (control);
-	// std::cout << "\nWrite your file's extension: \n";
-	// std::cin >> extension;
+
+	//	 std::cout << "\nWrite your file's extension: \n";
+	//	 std::cin >> extension;
 
 
 
@@ -178,20 +181,29 @@ std::vector<BYTE> encrypt(std::vector<BYTE> smallVector, std::vector<BYTE> key, 
 
 void listFiles(string userName)
 {
-	std::filesystem::path pathToDir = "./Data/Korisnici/" + userName + "Files/";
+	std::filesystem::path pathToDir = "./Data/Korisnici/" + userName + "/Files/";
+	string noRepeat = "xxxxxxxxxxxxxxxxx";
+
 
 	for (const auto& entry : std::filesystem::directory_iterator(pathToDir))
 	{
 		if (entry.is_regular_file())
 		{
-			string path = entry.path().string();
-			string filename = path.substr(path.rfind("/") + 1);
+			 string path = entry.path().string();
+			 string filename = path.substr(path.rfind("/") + 1);
 
-			//if ()					// Da se ne ponavljaju
-			{
+			 filename = filename.substr(0, filename.rfind("."));	// Removes extension
+			 filename.pop_back();									// Removes last character
+			 
+			 if(filename != noRepeat)
+			 {
 				std::cout << filename << std::endl;
-			}
+				
+				noRepeat = filename;
+			 }
+
 		}
 	}
 
 }
+
