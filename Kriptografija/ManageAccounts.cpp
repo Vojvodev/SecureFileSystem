@@ -45,6 +45,7 @@ int registrate()
 		
 		// Creates a directory to save all the information about one user
 		std::filesystem::create_directory("./Data/Korisnici/" + newUser.commonName);					// In project properties c++17 or higher
+		std::filesystem::create_directory("./Data/Korisnici/" + newUser.commonName + "Files/");
 
 
 		// Storing user's information to a file
@@ -714,7 +715,7 @@ void loggedIn(string userName)
 	std::cout << "What do you want to do ? \n\n";
 
 	
-	std::cout << "To see the list of your files, enter		-list \n";
+	std::cout << "To see the list of your files, enter			-list \n";
 	std::cout << "To download your files, enter				-download \n";
 	std::cout << "To upload your files, enter				-upload \n";
 	std::cout << "To log out, enter					-logout \n\n\n";
@@ -730,7 +731,6 @@ void loggedIn(string userName)
 
 		if (option == "-upload") {
 			if(upload(userName)) std::cout << "\n ---Upload successful---      \n";
-			else std::cout << "\n ---Could not upload files---        \n";
 		}
 
 		if (option == "-list") {

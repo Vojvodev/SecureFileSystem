@@ -25,9 +25,14 @@ int upload(string userName)
 
 		control = 0;
 
-		std::ifstream checkFilesForName("./Data/Korisnici/" + userName + "/" + fileName, std::ios::in);
+		std::ifstream checkFilesForName("./Data/Korisnici/" + userName + "/" + "Files/" + fileName, std::ios::in);
 		if (checkFilesForName.is_open()) {
 			std::cout << "Choose a different name. \n\n";  control = 1; checkFilesForName.close();
+		}
+
+		std::ifstream checkFilesForNames("./Data/Korisnici/" + userName + "/" + "Files/" + fileName + "0.dat", std::ios::in);
+		if (checkFilesForNames.is_open()) {
+			std::cout << "Choose a different name. \n\n";  control = 1; checkFilesForNames.close();
 		}
 
 	} while (control);
@@ -76,7 +81,7 @@ int upload(string userName)
 
 	for (int i = 0; i < numberOfComponents; i++)
 	{
-		string smallFilePath = "./Data/Korisnici/" + userName + "/" + fileName + std::to_string(i) + ".dat";
+		string smallFilePath = "./Data/Korisnici/" + userName + "/" + "Files/" + fileName + std::to_string(i) + ".dat";
 	
 		// Number of bytes in each small file
 		long long numberOfBytes = fileSize / numberOfComponents;
@@ -143,8 +148,6 @@ std::vector<BYTE> readFile(const char *inputFile)
 		fileName.close();
 		return fileData;
 	}
-	else std::cout<<"Could not find your file. \nTry again. \n\n";
-
 }
 
 
@@ -175,13 +178,19 @@ std::vector<BYTE> encrypt(std::vector<BYTE> smallVector, std::vector<BYTE> key, 
 
 void listFiles(string userName)
 {
-	std::filesystem::path pathToDir = "./Data/Korisnici/" + userName;
+	std::filesystem::path pathToDir = "./Data/Korisnici/" + userName + "Files/";
 
 	for (const auto& entry : std::filesystem::directory_iterator(pathToDir))
 	{
 		if (entry.is_regular_file())
 		{
-			std::cout << entry.path() << std::endl;
+			string path = entry.path().string();
+			string filename = path.substr(path.rfind("/") + 1);
+
+			//if ()					// Da se ne ponavljaju
+			{
+				std::cout << filename << std::endl;
+			}
 		}
 	}
 
