@@ -76,8 +76,10 @@ class X509Certificate {
 		// Recoveres certificate from the crl list, returns 1 if successfully recovered, static - does not need object to be called
 		static int certRecovery();
 
-	private:
+
 		X509* myCertificate;
+
+	private:
 		EVP_PKEY* pkey;
 };
 

@@ -7,7 +7,8 @@
 
 // To ensure that file fragments are not changed (file integrity), we could calculate hash of each fragment - digital signature
 // To make decryption easier, istead of a random key, we could use user's public key for encryption and his private key for decryption
-// To save the symmetric key, we can use digital envelope mechanism (encrypting the symmetric key with asymmetric one)
+
+// To save the symmetric key, we use digital envelope mechanism (encrypting the symmetric key with asymmetric one)
 
 
 int upload(string userName)
@@ -49,7 +50,7 @@ int upload(string userName)
 	
 
 	// Read file size
-	std::ifstream inputFile(pathForUpload, std::ios::in, std::ios::binary);
+	std::ifstream inputFile(pathForUpload, std::ios::binary);
 	if (inputFile.is_open())
 	{
 		inputFile.seekg(0, std::ios::end);
@@ -76,10 +77,15 @@ int upload(string userName)
 	std::vector<BYTE> key(32); // 256-bit key
 	std::vector<BYTE> iv(EVP_MAX_IV_LENGTH); // random IV (Salt value)
 
+
 	// Key and IV values are random
 	RAND_bytes(key.data(), key.size());
 	RAND_bytes(iv.data(), iv.size());
 
+
+	// Key is encrypted, then stored in a file
+	writeKey(key, userName, fileName);
+	//writeIv(iv, userName, fileName);
 
 
 	for (int i = 0; i < numberOfComponents; i++)
@@ -106,7 +112,7 @@ int upload(string userName)
 
 
 		// New file is created with the contents of smallVectorEncrypted
-		std::ofstream smallFile(smallFilePath, std::ios::out, std::ios::binary);
+		std::ofstream smallFile(smallFilePath, std::ios::binary);
 		if (smallFile.is_open())
 		{
 
@@ -193,7 +199,7 @@ void listFiles(string userName)
 			 string filename = path.substr(path.rfind("/") + 1);
 
 			 filename = filename.substr(0, filename.rfind("."));	// Removes extension
-			 filename.pop_back();									// Removes last character
+			 if(isdigit(filename.back())) filename.pop_back();		// Removes last character if it's a number
 			 
 			 if(filename != noRepeat)
 			 {
@@ -207,3 +213,56 @@ void listFiles(string userName)
 
 }
 
+
+
+void writeKey(std::vector<BYTE> key, string userName, string fileName)
+{
+	X509Certificate cert;
+
+	string userCertificatePath = "./Data/Korisnici/" + userName + "/" + userName + ".crt";
+	cert.myCertificate = cert.loadCertificate(userCertificatePath.c_str());
+
+	EVP_PKEY* publicUserKey = X509_get_pubkey(cert.myCertificate);
+
+	string filePath = "./Data/Korisnici/" + userName + "/" + "Files/" + fileName + "key.dat";
+
+
+	// Initialize the encryption context
+	EVP_PKEY_CTX* pkey_ctx;
+	pkey_ctx = EVP_PKEY_CTX_new(publicUserKey, NULL);
+	EVP_PKEY_encrypt_init(pkey_ctx);
+
+	// Determine the size of the encrypted data buffer
+	size_t outlen = 0;
+	size_t ciphertext_len = 0;
+	EVP_PKEY_encrypt(pkey_ctx, NULL, &outlen, key.data(), key.size());
+	ciphertext_len += outlen;
+
+	
+	// Encrypt the data
+	std::vector<BYTE> ciphertext(ciphertext_len);
+	EVP_PKEY_encrypt(pkey_ctx, ciphertext.data(), &ciphertext_len, key.data(), key.size());
+
+	
+	std::ofstream file(filePath, std::ios::binary);
+	if (file.is_open())
+	{
+
+		file.write(reinterpret_cast<const char*>(&ciphertext[0]), ciphertext.size() * sizeof(BYTE));
+
+		file.close();
+	}
+	else std::cout << "Error creating file for storing symmetric key. \n";
+	
+	
+
+	EVP_PKEY_CTX_free(pkey_ctx);
+	if (publicUserKey) EVP_PKEY_free(publicUserKey);
+}
+
+
+void writeIv(std::vector<BYTE> iv, string userName, string fileName)
+{
+
+
+}

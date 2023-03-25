@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <vector>
-
+#include <cctype>
 
 
 #include <openssl/rand.h>
@@ -25,3 +25,10 @@ std::vector<BYTE> encrypt(std::vector<BYTE>, std::vector<BYTE>, std::vector<BYTE
 // Writes out all the files for one user, param. that user
 void listFiles(string);
 
+
+// Encrypts and stores the key in a file
+void writeKey(std::vector<BYTE>, string, string);
+
+
+// Writes iv to a file
+void writeIv(std::vector<BYTE>, string, string);

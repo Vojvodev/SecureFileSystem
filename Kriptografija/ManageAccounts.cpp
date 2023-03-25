@@ -45,7 +45,7 @@ int registrate()
 		
 		// Creates a directory to save all the information about one user
 		std::filesystem::create_directory("./Data/Korisnici/" + newUser.commonName);					// In project properties c++17 or higher
-		std::filesystem::create_directory("./Data/Korisnici/" + newUser.commonName + "Files/");
+		std::filesystem::create_directory("./Data/Korisnici/" + newUser.commonName + "/Files/");
 
 
 		// Storing user's information to a file
