@@ -231,7 +231,7 @@ X509* X509Certificate::generateCertificate(User* newUser)
 		EVP_PKEY_free(CApkey);
 		X509_free(CAcert);
 		
-		std::cout << "Wrong data, can't issue a certificate to you. \n";
+		std::cout << "\nWrong data, can't issue a certificate to you. \n";
 		return NULL;
 	}
 

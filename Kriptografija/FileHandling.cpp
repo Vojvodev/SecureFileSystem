@@ -187,6 +187,8 @@ std::vector<BYTE> encrypt(std::vector<BYTE> smallVector, std::vector<BYTE> key, 
 
 void listFiles(string userName)
 {
+	std::cout << "\n----------\n\n";
+
 	std::filesystem::path pathToDir = "./Data/Korisnici/" + userName + "/Files/";
 	string noRepeat = "xxxxxxxxxxxxxxxxx";
 
@@ -210,6 +212,8 @@ void listFiles(string userName)
 
 		}
 	}
+
+	std::cout << "----------\n\n";
 
 }
 
