@@ -7,9 +7,8 @@
 */
 
 
-// For the CA private key
-// Ne moze korisnik znati koja sifra je koristena za stvaranje CA tijela, trebalo bi da neki unos vrsi administrator koji zna sifru da ona ne stoji ovako
-constexpr auto PASSPHRASE =		  "sigurnost";
+
+constexpr auto PASSPHRASE =		  "sigurnost";					// For the CA private key, ne moze korisnik znati koja sifra je koristena za stvaranje CA tijela, trebalo bi da neki unos vrsi administrator koji zna sifru da ona ne stoji ovako
 constexpr auto pathToCACert =	  "./Data/CAcert/rootca.pem";
 constexpr auto pathToPrivateKey = "./Data/CAcert/kljuc.key";
 constexpr auto pathToCrlList =	  "./Data/crl.txt";

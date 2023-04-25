@@ -594,10 +594,10 @@ void X509Certificate::revokeCertificate(EVP_PKEY* privateCAkey)
 	//			
 	//			
 	//			X509_CRL_free(crl);
-	//			//X509_NAME_free(issuerName);						// These should not be freed for some reason
-	//			//X509_REVOKED_free(revokedCert);
-	//			//ASN1_INTEGER_free(serial);
-	//			//ASN1_TIME_free(tm);
+	//			//X509_NAME_free(issuerName);						// These should not be freed
+	//			//X509_REVOKED_free(revokedCert);					//
+	//			//ASN1_INTEGER_free(serial);						//
+	//			//ASN1_TIME_free(tm);								//
 	//			BIO_free(bio_out);
 	
 	ASN1_INTEGER* serial = X509_get_serialNumber(this->myCertificate);

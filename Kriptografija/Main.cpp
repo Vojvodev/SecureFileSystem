@@ -35,7 +35,7 @@ int main()
 
 
         if (option == "-login") {
-            login();        // Main part of the program
+            login();                                                                    // Main part of the program
         }
 
 

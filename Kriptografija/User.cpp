@@ -226,7 +226,7 @@ int User::writePrivateKey()
 
     BIO* bio_out = BIO_new_file(filename.c_str(), "w");
 
-    // Kljuc je zapisan u datoteku i kriptovan je korisnickom sifrom i u datoteci pise --begin encrypted private key-- unmjesto samo private key
+    // Kljuc je zapisan u datoteku i kriptovan je korisnickom sifrom
     rc = PEM_write_bio_PrivateKey(bio_out, pkey, EVP_aes_256_cbc(), reinterpret_cast<const unsigned char*>((this->password).c_str()), strlen((this->password).c_str()), NULL, NULL);
 
 
